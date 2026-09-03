@@ -1,0 +1,6 @@
+{
+  "name": "90 Days English",
+  "description": "An academic minimalist English learning platform with daily structured lessons, listening practice, speaking feedback, reading with Hindi translations, and an AI tutor.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
