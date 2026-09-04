@@ -60,8 +60,8 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: #111111;
-  color: #efefef;
+  background-color: #ffff;
+  color: #111111;
   -webkit-font-smoothing: antialiased;
 }
 

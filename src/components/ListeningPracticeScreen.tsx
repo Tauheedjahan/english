@@ -1,258 +1,306 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface ListeningPracticeScreenProps {
+  youtubeUrl: string;
+  onUpdateYoutubeUrl: (url: string) => void;
   onBackToLessons: () => void;
   onFinishListening: () => void;
 }
 
 export const ListeningPracticeScreen: React.FC<ListeningPracticeScreenProps> = ({
+  youtubeUrl,
+  onUpdateYoutubeUrl,
   onBackToLessons,
   onFinishListening,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTimeSeconds, setCurrentTimeSeconds] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
-  const [showCaptions, setShowCaptions] = useState(false);
-  const totalDurationSeconds = 480; // 8:00
-
-  const intervalRef = useRef<number | null>(null);
+  const [showEditUrl, setShowEditUrl] = useState(false);
+  const [inputUrl, setInputUrl] = useState(youtubeUrl);
+  const [showCaptions, setShowCaptions] = useState(true);
 
   useEffect(() => {
-    if (isPlaying) {
-      intervalRef.current = window.setInterval(() => {
-        setCurrentTimeSeconds((prev) => {
-          if (prev >= totalDurationSeconds) {
-            setIsPlaying(false);
-            return totalDurationSeconds;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    } else if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+    setInputUrl(youtubeUrl);
+  }, [youtubeUrl]);
+
+  // Extract YouTube ID for embed
+  const getYoutubeEmbedUrl = (url: string) => {
+    try {
+      let videoId = '';
+      if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
+      } else if (url.includes('youtube.com/watch')) {
+        const urlParams = new URLSearchParams(url.split('?')[1]);
+        videoId = urlParams.get('v') || '';
+      } else if (url.includes('youtube.com/embed/')) {
+        videoId = url.split('youtube.com/embed/')[1]?.split('?')[0] || '';
+      }
+      if (videoId) {
+        return `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0`;
+      }
+    } catch {
+      // Fallback
     }
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [isPlaying]);
-
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
+    return 'https://www.youtube-nocookie.com/embed/RcGyVTAoXEU?autoplay=0&rel=0';
   };
 
-  const skipTime = (delta: number) => {
-    setCurrentTimeSeconds((prev) => {
-      const next = prev + delta;
-      return Math.max(0, Math.min(totalDurationSeconds, next));
-    });
+  const handleSaveUrl = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inputUrl.trim()) {
+      onUpdateYoutubeUrl(inputUrl.trim());
+      setShowEditUrl(false);
+    }
   };
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-    setCurrentTimeSeconds(Math.round(percentage * totalDurationSeconds));
-  };
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s < 10 ? '0' : ''}${s}`;
-  };
-
-  const progressPercent = (currentTimeSeconds / totalDurationSeconds) * 100;
+  const embedUrl = getYoutubeEmbedUrl(youtubeUrl);
+  const isKellyMcgonigalVideo = youtubeUrl.includes('RcGyVTAoXEU');
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#111111] text-[#EFEFEF]">
-      {/* Desktop TopAppBar (Task-Focused) */}
-      <header className="docked top-0 hidden md:flex justify-between items-center w-full px-8 lg:px-12 h-20 max-w-[1200px] mx-auto border-b border-[#333333] bg-[#111111]">
+      {/* Workflow Navigation Bar */}
+      <header className="sticky top-0 z-30 border-b border-[#333333] px-4 md:px-12 h-18 max-w-[1200px] mx-auto w-full flex items-center justify-between bg-[#111111]/95 backdrop-blur-md">
         <button
           onClick={onBackToLessons}
-          className="flex items-center gap-3 text-[#888888] hover:text-[#D4AF37] transition-colors cursor-pointer group"
+          className="flex items-center gap-2.5 text-[#888888] hover:text-[#D4AF37] transition-colors cursor-pointer group"
         >
           <span className="material-symbols-outlined text-[18px] group-hover:-translate-x-1 transition-transform">
             arrow_back
           </span>
-          <span className="font-sans text-[10px] leading-5 uppercase tracking-[0.25em] font-medium">
-            Back to Curriculum
+          <span className="font-sans text-[10px] uppercase tracking-[0.25em] font-medium">
+            Curriculum
           </span>
         </button>
-        <div className="font-serif italic text-[22px] font-light text-[#EFEFEF]">
-          90 Days English
+
+        {/* Step Indicator */}
+        <div className="flex items-center gap-2 md:gap-3 text-[10px] uppercase tracking-[0.2em]">
+          <span className="text-[#D4AF37] font-semibold flex items-center gap-1.5 bg-[#262010] border border-[#D4AF37]/40 px-3 py-1 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse"></span>
+            1. Listening
+          </span>
+          <span className="text-[#444444]">→</span>
+          <span className="text-[#666666] hidden sm:inline">2. Reading</span>
+          <span className="text-[#444444] hidden sm:inline">→</span>
+          <span className="text-[#666666] hidden sm:inline">3. Translation (41)</span>
+          <span className="text-[#444444] hidden sm:inline">→</span>
+          <span className="text-[#666666] hidden md:inline">4. AI Conversation</span>
         </div>
-        <div className="w-32 text-right text-[9px] uppercase tracking-[0.25em] text-[#888888]">
-          Module 01 // Audio
-        </div>
+
+        {/* Edit YouTube Link Button */}
+        <button
+          onClick={() => setShowEditUrl(!showEditUrl)}
+          className="text-[10px] uppercase tracking-[0.2em] text-[#AAAAAA] hover:text-[#D4AF37] border border-[#333333] hover:border-[#D4AF37]/50 px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-colors cursor-pointer bg-[#1A1A1A]"
+        >
+          <span className="material-symbols-outlined text-[14px]">link</span>
+          <span className="hidden sm:inline">Edit Video Link</span>
+        </button>
       </header>
 
-      {/* Mobile Top Header */}
-      <header className="flex md:hidden justify-between items-center w-full px-4 h-16 border-b border-[#333333] bg-[#141414]">
-        <button
-          onClick={onBackToLessons}
-          className="material-symbols-outlined cursor-pointer text-[#888888] hover:text-[#D4AF37] p-2 -ml-2"
-        >
-          arrow_back
-        </button>
-        <div className="font-serif italic text-[18px] font-light text-[#EFEFEF]">
-          90 Days English
+      {/* Edit URL Modal / Dropdown */}
+      {showEditUrl && (
+        <div className="max-w-[1200px] mx-auto w-full px-4 md:px-12 mt-3 animate-fade-in z-20">
+          <form
+            onSubmit={handleSaveUrl}
+            className="bg-[#1A1A1A] border border-[#D4AF37]/50 p-4 md:p-6 shadow-[0px_8px_32px_rgba(0,0,0,0.6)] flex flex-col sm:flex-row items-center gap-4"
+          >
+            <div className="flex-1 w-full">
+              <label className="block text-[10px] uppercase tracking-[0.25em] text-[#D4AF37] mb-1 font-semibold">
+                Set YouTube Video URL (Add your custom link manually anytime)
+              </label>
+              <input
+                type="url"
+                value={inputUrl}
+                onChange={(e) => setInputUrl(e.target.value)}
+                placeholder="https://www.youtube.com/watch?v=..."
+                className="w-full bg-[#111111] border border-[#333333] focus:border-[#D4AF37] px-4 py-2 text-[14px] text-[#EFEFEF] outline-none"
+              />
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <button
+                type="submit"
+                className="bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] text-[11px] uppercase tracking-[0.2em] font-semibold px-6 py-2.5 transition-colors cursor-pointer whitespace-nowrap"
+              >
+                Save URL
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowEditUrl(false)}
+                className="bg-[#222222] hover:bg-[#333333] text-[#AAAAAA] text-[11px] uppercase tracking-[0.2em] px-4 py-2.5 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
-        <div className="w-6" />
-      </header>
+      )}
 
       {/* Main Content Area */}
-      <main className="flex-grow w-full max-w-[1000px] mx-auto px-4 md:px-12 py-8 md:py-12 flex flex-col pb-24">
+      <main className="flex-grow w-full max-w-[1000px] mx-auto px-4 md:px-12 py-8 md:py-10 flex flex-col pb-24">
         {/* Header Section */}
         <div className="mb-8 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-2 mb-3">
             <span className="inline-block px-3 py-1 bg-[#1A1A1A] text-[#D4AF37] font-sans text-[9px] font-medium uppercase tracking-[0.3em] border border-[#333333]">
-              Intermediate B1
+              Day 01 // Step 1 of 4
             </span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1A1A1A] text-[#888888] font-sans text-[9px] font-medium uppercase tracking-[0.3em] border border-[#333333]">
-              <span className="material-symbols-outlined text-[13px] text-[#D4AF37]">schedule</span> 8 min
+              <span className="material-symbols-outlined text-[13px] text-[#D4AF37]">headphones</span>
+              Listening Mastery
             </span>
           </div>
 
           <h1 className="font-serif italic text-[32px] md:text-[44px] font-light text-[#EFEFEF] mb-3">
-            Listening Studio: Daily Routines
+            {isKellyMcgonigalVideo
+              ? 'How to Make Stress Your Friend — Kelly McGonigal'
+              : 'The Science of Morning Routines & Productive Habits'}
           </h1>
           <div className="w-12 h-[1px] bg-[#D4AF37] mb-3 md:mx-0 mx-auto"></div>
           <p className="font-sans text-[14px] md:text-[16px] leading-relaxed text-[#AAAAAA] max-w-2xl">
-            Listen carefully to the spoken excerpt. Pay close attention to natural pacing, reductions, and transition markers.
+            {isKellyMcgonigalVideo
+              ? 'Watch and listen to psychologist Kelly McGonigal’s TED Talk. Pay close attention to spoken cadence, rhetorical questions, and how she explains transforming anxiety into courage and connection.'
+              : 'Watch and listen carefully to the video. Observe how natural pauses, phrasal verbs, and habitual structures like "used to" and "kick-start" are spoken in real cadence.'}
           </p>
         </div>
 
-        {/* Video/Audio Media Container */}
-        <div className="w-full bg-[#1A1A1A] border border-[#333333] overflow-hidden mb-8 flex flex-col shadow-[0px_8px_32px_rgba(0,0,0,0.5)]">
-          {/* Media Player Visual Area */}
-          <div
-            onClick={togglePlay}
-            className="relative w-full pt-[56.25%] bg-[#141414] group cursor-pointer overflow-hidden select-none"
-          >
-            {/* Hotlinked image with fallbacks */}
-            <div
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-90"
-              style={{
-                backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuCEcnTNl2RJJsbgDWME-jUd4RuU1iCLOULsCIPQVCn2SqBBk362rWsk-rvImBbjL607P88lkbtwL0enaV94SUBAtgniCK8ImP_Oko_NtIzdb2YZ49X7Ht28hrV0-jjo0uEGoeXsihU-WL1KIhCV31kqoXMj2Q_Qv-MzNXMjzfSVF8T09EOLlazwJNt4kFEjEIA1JgjAD9-KJhT9MmME-rv_e8QAwxN2V5rZqXCaonFi5FLTFlsPOc-p')`,
-              }}
+        {/* Video Player Container */}
+        <div className="w-full bg-[#1A1A1A] border border-[#333333] overflow-hidden mb-8 shadow-[0px_8px_32px_rgba(0,0,0,0.5)]">
+          {/* Responsive YouTube Embed Container */}
+          <div className="relative w-full pb-[56.25%] bg-[#0A0A0A]">
+            <iframe
+              src={embedUrl}
+              title="YouTube English Learning Video"
+              className="absolute top-0 left-0 w-full h-full border-0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
             />
-
-            {/* Play Button Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/25 transition-colors duration-300">
-              <div className="w-16 h-16 md:w-20 md:h-20 bg-[#111111]/85 backdrop-blur-md rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300 border border-[#D4AF37]">
-                <span className="material-symbols-outlined text-[#D4AF37] text-3xl ml-1">
-                  {isPlaying ? 'pause' : 'play_arrow'}
-                </span>
-              </div>
-            </div>
-
-            {/* Closed Captions Overlay */}
-            {showCaptions && (
-              <div className="absolute bottom-4 inset-x-4 flex justify-center pointer-events-none">
-                <div className="bg-[#111111]/90 border border-[#333333] text-[#EFEFEF] font-serif italic text-sm md:text-base px-6 py-2.5 max-w-xl text-center backdrop-blur-md shadow-2xl">
-                  {currentTimeSeconds < 30
-                    ? "Sarah: \"Every morning begins at roughly 6:30. Before answering any client emails, I make a pour-over coffee.\""
-                    : currentTimeSeconds < 90
-                    ? "Sarah: \"I used to rush out the door without breakfast, but recently I've established a calmer morning routine.\""
-                    : "Sarah: \"Consistent habits create clarity. Notice the contrast between 'I used to do' and 'I am used to doing'.\""}
-                </div>
-              </div>
-            )}
-
-            {/* Simulated progress bar line */}
-            <div className="absolute bottom-0 left-0 w-full h-[2px] bg-[#2A2A2A]">
-              <div
-                className="h-full bg-[#D4AF37] transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
           </div>
 
-          {/* Audio Controls Bar */}
-          <div className="p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4 border-t border-[#333333] bg-[#161616]">
-            <div className="flex items-center gap-3 w-full md:w-auto justify-center md:justify-start">
-              <button
-                onClick={() => skipTime(-10)}
-                title="Rewind 10 seconds"
-                className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#222222] transition-colors text-[#AAAAAA] hover:text-[#D4AF37] border border-[#333333] cursor-pointer"
+          {/* Video Action Toolbar */}
+          <div className="p-4 md:p-6 bg-[#161616] border-t border-[#333333] flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <a
+                href={youtubeUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-[#CC0000] hover:bg-[#b00000] text-white text-[10px] uppercase tracking-[0.2em] font-semibold px-4 py-2.5 rounded transition-colors shadow-sm"
               >
-                <span className="material-symbols-outlined text-[18px]">replay_10</span>
-              </button>
+                <span className="material-symbols-outlined text-[16px]">play_circle</span>
+                Watch on YouTube
+              </a>
 
-              <button
-                onClick={togglePlay}
-                title={isPlaying ? 'Pause' : 'Play'}
-                className="w-12 h-12 rounded-full bg-[#D4AF37] text-[#111111] flex items-center justify-center hover:bg-[#e0bd49] transition-colors shadow-[0px_0px_16px_rgba(212,175,55,0.3)] cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[24px]">
-                  {isPlaying ? 'pause' : 'play_arrow'}
-                </span>
-              </button>
-
-              <button
-                onClick={() => skipTime(10)}
-                title="Forward 10 seconds"
-                className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#222222] transition-colors text-[#AAAAAA] hover:text-[#D4AF37] border border-[#333333] cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[18px]">forward_10</span>
-              </button>
-            </div>
-
-            {/* Scrubber slider track */}
-            <div className="flex-grow w-full px-2 md:px-4 flex items-center gap-3">
-              <span className="font-mono text-[11px] text-[#888888] w-10 text-right">
-                {formatTime(currentTimeSeconds)}
-              </span>
-
-              <div
-                onClick={handleSeek}
-                className="flex-grow h-[3px] bg-[#2A2A2A] overflow-hidden cursor-pointer relative group"
-              >
-                <div
-                  className="absolute top-0 left-0 h-full bg-[#D4AF37] transition-all duration-200 group-hover:bg-[#f0cf65]"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-
-              <span className="font-mono text-[11px] text-[#888888] w-10">
-                {formatTime(totalDurationSeconds)}
-              </span>
-            </div>
-
-            {/* Aux Controls */}
-            <div className="flex items-center gap-2 text-[#AAAAAA] w-full md:w-auto justify-end">
               <button
                 onClick={() => setShowCaptions(!showCaptions)}
-                title="Toggle subtitles / closed captions"
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors cursor-pointer border ${
+                className={`text-[10px] uppercase tracking-[0.2em] px-3 py-2 rounded border transition-colors cursor-pointer ${
                   showCaptions
-                    ? 'bg-[#262010] text-[#D4AF37] border-[#D4AF37]'
-                    : 'hover:bg-[#222222] border-[#333333] text-[#888888]'
+                    ? 'bg-[#262010] text-[#D4AF37] border-[#D4AF37]/50'
+                    : 'bg-[#1A1A1A] text-[#888888] border-[#333333] hover:text-[#EFEFEF]'
                 }`}
               >
-                <span className="material-symbols-outlined text-[18px]">closed_caption</span>
+                {showCaptions ? 'Hide Key Highlights' : 'Show Key Highlights'}
               </button>
+            </div>
 
-              <button
-                onClick={() => setIsMuted(!isMuted)}
-                title={isMuted ? 'Unmute' : 'Mute'}
-                className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#222222] hover:text-[#D4AF37] border border-[#333333] transition-colors cursor-pointer text-[#888888]"
-              >
-                <span className="material-symbols-outlined text-[18px]">
-                  {isMuted ? 'volume_off' : 'volume_up'}
-                </span>
-              </button>
+            <div className="text-[11px] text-[#888888] font-mono truncate max-w-xs">
+              Link: <span className="text-[#AAAAAA]">{youtubeUrl}</span>
             </div>
           </div>
         </div>
 
-        {/* Action Area */}
-        <div className="flex justify-center md:justify-end mt-auto pt-4">
+        {/* Key Vocabulary & Video Highlights */}
+        {showCaptions && (
+          <div className="w-full bg-[#1A1A1A] border border-[#333333] p-6 mb-8 shadow-sm">
+            <h3 className="font-serif italic text-[20px] text-[#EFEFEF] mb-4 flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#D4AF37] text-[20px]">lightbulb</span>
+              Essential Expressions from this Video
+            </h3>
+            {isKellyMcgonigalVideo ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[13px]">
+                <div className="border border-[#282828] bg-[#141414] p-3.5">
+                  <span className="text-[#D4AF37] font-semibold uppercase tracking-wider text-[10px] block mb-1">
+                    1. "Rise to the challenge"
+                  </span>
+                  <p className="text-[#CCCCCC] leading-relaxed">
+                    To respond courageously to a difficult demand or stressful task. <span className="text-[#888888] italic">("Your pounding heart is preparing you to rise to the challenge.")</span>
+                  </p>
+                </div>
+
+                <div className="border border-[#282828] bg-[#141414] p-3.5">
+                  <span className="text-[#D4AF37] font-semibold uppercase tracking-wider text-[10px] block mb-1">
+                    2. "Reach out to others"
+                  </span>
+                  <p className="text-[#CCCCCC] leading-relaxed">
+                    To seek or give human support and connection. <span className="text-[#888888] italic">("A natural instinct under pressure is to reach out and connect.")</span>
+                  </p>
+                </div>
+
+                <div className="border border-[#282828] bg-[#141414] p-3.5">
+                  <span className="text-[#D4AF37] font-semibold uppercase tracking-wider text-[10px] block mb-1">
+                    3. "The biology of courage"
+                  </span>
+                  <p className="text-[#CCCCCC] leading-relaxed">
+                    How understanding your body's physiological reaction transforms anxiety into inner strength and resilience.
+                  </p>
+                </div>
+
+                <div className="border border-[#282828] bg-[#141414] p-3.5">
+                  <span className="text-[#D4AF37] font-semibold uppercase tracking-wider text-[10px] block mb-1">
+                    4. "Make stress your friend"
+                  </span>
+                  <p className="text-[#CCCCCC] leading-relaxed">
+                    Reframing stress as a helpful, empowering physiological ally rather than a harmful burden.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[13px]">
+                <div className="border border-[#282828] bg-[#141414] p-3.5">
+                  <span className="text-[#D4AF37] font-semibold uppercase tracking-wider text-[10px] block mb-1">
+                    1. "Kick-start the day"
+                  </span>
+                  <p className="text-[#CCCCCC] leading-relaxed">
+                    To give vigorous momentum to your morning. <span className="text-[#888888] italic">("A warm glass of water kick-starts my digestive system.")</span>
+                  </p>
+                </div>
+
+                <div className="border border-[#282828] bg-[#141414] p-3.5">
+                  <span className="text-[#D4AF37] font-semibold uppercase tracking-wider text-[10px] block mb-1">
+                    2. "Used to [base verb]"
+                  </span>
+                  <p className="text-[#CCCCCC] leading-relaxed">
+                    Past discontinued habits. <span className="text-[#888888] italic">("I used to wake up late, but now my daily routine has changed.")</span>
+                  </p>
+                </div>
+
+                <div className="border border-[#282828] bg-[#141414] p-3.5">
+                  <span className="text-[#D4AF37] font-semibold uppercase tracking-wider text-[10px] block mb-1">
+                    3. "Wake up" vs "Get out of bed"
+                  </span>
+                  <p className="text-[#CCCCCC] leading-relaxed">
+                    "Wake up" is the cessation of sleep; "get out of bed" is physical movement.
+                  </p>
+                </div>
+
+                <div className="border border-[#282828] bg-[#141414] p-3.5">
+                  <span className="text-[#D4AF37] font-semibold uppercase tracking-wider text-[10px] block mb-1">
+                    4. "Prioritize over"
+                  </span>
+                  <p className="text-[#CCCCCC] leading-relaxed">
+                    To choose what matters most. <span className="text-[#888888] italic">("I prioritize early sleep rather than scrolling through my phone.")</span>
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Completion Action Bar */}
+        <div className="mt-auto pt-6 border-t border-[#333333] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="text-[12px] text-[#888888]">
+            Watched and listened to the video? Click below to unlock the related PDF Reading guide.
+          </div>
+
           <button
             onClick={onFinishListening}
-            className="bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] w-full md:w-auto px-10 py-4 font-sans text-[11px] uppercase tracking-[0.25em] font-semibold flex items-center justify-center gap-3 transition-all duration-300 shadow-[0px_4px_24px_rgba(212,175,55,0.25)] cursor-pointer group"
+            className="bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] w-full sm:w-auto px-10 py-4 font-sans text-[11px] uppercase tracking-[0.25em] font-semibold flex items-center justify-center gap-3 transition-all duration-300 shadow-[0px_4px_24px_rgba(212,175,55,0.25)] cursor-pointer group"
           >
-            Finish Listening Session
+            Complete Listening → Unlock Reading
             <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
               arrow_forward
             </span>

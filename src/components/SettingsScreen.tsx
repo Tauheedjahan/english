@@ -1,17 +1,26 @@
 import React, { useState } from 'react';
+import { UserProfile } from '../types';
 
 interface SettingsScreenProps {
   currentDay: number;
   day1Completed: boolean;
+  user: UserProfile | null;
   onSetDayState: (day: number, completed: boolean) => void;
   onNavigateHome: () => void;
+  onLoginWithGoogle: () => void;
+  onSignOut: () => void;
+  onOpenAdmin: () => void;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   currentDay,
   day1Completed,
+  user,
   onSetDayState,
   onNavigateHome,
+  onLoginWithGoogle,
+  onSignOut,
+  onOpenAdmin,
 }) => {
   const [targetLevel, setTargetLevel] = useState('B1 Intermediate');
   const [dailyGoal, setDailyGoal] = useState('30 min');
@@ -23,6 +32,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     setSavedNotification(true);
     setTimeout(() => setSavedNotification(false), 2500);
   };
+
 
   return (
     <main className="flex-grow w-full max-w-[900px] mx-auto px-4 md:px-12 py-8 md:py-12 flex flex-col min-h-[calc(100vh-160px)] animate-fade-in">
@@ -131,6 +141,146 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               </div>
             </div>
           </div>
+        </section>
+
+        {/* Supabase Account & Google Authentication */}
+        <section className="bg-[#1A1A1A] border border-[#333333] p-6 md:p-8 shadow-[0px_8px_32px_rgba(0,0,0,0.5)] space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2A]">
+            <h2 className="font-serif italic text-2xl font-light text-[#EFEFEF]">
+              Account & Cloud Database
+            </h2>
+            <span className="text-[9px] uppercase tracking-[0.25em] bg-[#16241b] text-[#68BA89] px-2.5 py-0.5 border border-[#68BA89]/30 font-semibold">
+              Supabase Persistence Active
+            </span>
+          </div>
+
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 bg-[#141414] border border-[#282828]">
+            <div className="flex items-center gap-3">
+              {user ? (
+                <>
+                  {user.avatar_url ? (
+                    <img
+                      src={user.avatar_url}
+                      alt={user.full_name}
+                      className="w-12 h-12 rounded-full object-cover border border-[#D4AF37]"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-[#262010] border border-[#D4AF37] text-[#D4AF37] flex items-center justify-center font-serif text-lg">
+                      {user.full_name.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-[#EFEFEF]">{user.full_name}</span>
+                      {user.is_admin && (
+                        <span className="text-[9px] uppercase tracking-wider text-[#D4AF37] font-semibold bg-[#262010] px-2 py-0.5 border border-[#D4AF37]/40">
+                          Curriculum Admin
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-[#888888]">{user.email}</span>
+                    <p className="text-[11px] text-[#68BA89] mt-0.5">
+                      ✓ Progress automatically synchronized to cloud
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <h3 className="text-sm font-semibold text-[#EFEFEF]">Guest Learner Mode</h3>
+                  <p className="text-xs text-[#888888] mt-0.5">
+                    Log in with your Google account to keep your 90-day progress permanently saved across devices.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {user ? (
+                <button
+                  onClick={onSignOut}
+                  className="px-4 py-2.5 bg-[#222222] hover:bg-[#333333] border border-[#444444] text-[#CCCCCC] hover:text-white text-xs font-sans uppercase tracking-wider transition-colors cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              ) : (
+                <button
+                  onClick={onLoginWithGoogle}
+                  className="bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] px-5 py-2.5 font-sans text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-[0px_4px_16px_rgba(212,175,55,0.25)]"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path
+                      fill="#EA4335"
+                      d="M12 5c1.6 0 3 .6 4.1 1.6l3.1-3.1C17.3 1.7 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.4l3.7 2.9C6.5 7.4 9 5 12 5z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.8z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.6 14.7c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.2C.7 9.6 0 12.3 0 15.2s.7 5.6 1.9 8l3.7-2.9c0-.2 0-.4 0-.6z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.3L1.9 16.4C3.7 20.2 7.5 23.5 12 23.5z"
+                    />
+                  </svg>
+                  <span>Sign in with Google</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Admin Portal Gateway */}
+          {user?.is_admin ? (
+            <div className="p-4 bg-[#211B10] border border-[#523F16] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[9px] uppercase tracking-[0.25em] text-[#D4AF37] font-semibold">
+                    Administrator Panel Active
+                  </span>
+                  <span className="text-[9px] bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 border border-[#D4AF37]/30 font-medium">
+                    tauheedjahan07@gmail.com
+                  </span>
+                </div>
+                <p className="text-xs text-[#CCCCCC]">
+                  You are authenticated as the Lead Curriculum Administrator. You have full access to author learning days, upload companion PDFs, and generate translation sentences.
+                </p>
+              </div>
+              <button
+                onClick={onOpenAdmin}
+                className="bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] px-5 py-2.5 font-sans text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+              >
+                <span className="material-symbols-outlined text-sm">edit_note</span>
+                Open Admin Portal
+              </button>
+            </div>
+          ) : (
+            <div className="p-4 bg-[#141414] border border-[#282828] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="material-symbols-outlined text-xs text-[#888888]">lock</span>
+                  <span className="text-[9px] uppercase tracking-[0.25em] text-[#888888] font-semibold">
+                    Curator & Admin Portal
+                  </span>
+                  <span className="text-[9px] bg-[#222222] text-[#888888] px-1.5 py-0.5 border border-[#333333]">
+                    Restricted Access
+                  </span>
+                </div>
+                <p className="text-xs text-[#777777]">
+                  Curriculum authoring is reserved exclusively for <strong className="text-[#AAAAAA]">tauheedjahan07@gmail.com</strong>. Log in with your email ID & password or Google admin account.
+                </p>
+              </div>
+              <button
+                onClick={onOpenAdmin}
+                className="bg-[#1C1C1C] hover:bg-[#282828] text-[#D4AF37] border border-[#444444] hover:border-[#D4AF37] px-4 py-2 font-sans text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+              >
+                <span className="material-symbols-outlined text-xs">key</span>
+                Admin Login
+              </button>
+            </div>
+          )}
         </section>
 
         {/* Demo & Curriculum Navigation Quick Switcher */}

@@ -4,7 +4,7 @@ export const INITIAL_LESSON_STEPS: LessonStep[] = [
   {
     id: 1,
     number: '01',
-    title: 'Listening',
+    title: 'Listening (YouTube Video)',
     type: 'listening',
     duration: '8 min',
     completed: false,
@@ -14,9 +14,9 @@ export const INITIAL_LESSON_STEPS: LessonStep[] = [
   {
     id: 2,
     number: '02',
-    title: 'Questions',
-    type: 'questions',
-    duration: '5 min',
+    title: 'Reading (PDF Guide)',
+    type: 'reading',
+    duration: '10 min',
     completed: false,
     active: false,
     locked: true,
@@ -24,9 +24,9 @@ export const INITIAL_LESSON_STEPS: LessonStep[] = [
   {
     id: 3,
     number: '03',
-    title: 'Speaking',
-    type: 'speaking',
-    duration: '10 min',
+    title: 'Translation (41 Sentences)',
+    type: 'translation',
+    duration: '15 min',
     completed: false,
     active: false,
     locked: true,
@@ -34,38 +34,8 @@ export const INITIAL_LESSON_STEPS: LessonStep[] = [
   {
     id: 4,
     number: '04',
-    title: 'Reading',
-    type: 'reading',
-    duration: '7 min',
-    completed: false,
-    active: false,
-    locked: true,
-  },
-  {
-    id: 5,
-    number: '05',
-    title: 'Questions',
-    type: 'questions',
-    duration: '5 min',
-    completed: false,
-    active: false,
-    locked: true,
-  },
-  {
-    id: 6,
-    number: '06',
-    title: 'Translation',
-    type: 'translation',
-    duration: '6 min',
-    completed: false,
-    active: false,
-    locked: true,
-  },
-  {
-    id: 7,
-    number: '07',
-    title: 'Assessment',
-    type: 'assessment',
+    title: 'AI Conversation (Spoken Fluency)',
+    type: 'speaking',
     duration: '10 min',
     completed: false,
     active: false,
@@ -77,58 +47,53 @@ export const READING_PAGES: ReadingPage[] = [
   {
     pageNumber: 1,
     english: [
-      "The old clock tower struck midnight, its deep chime echoing through the empty, cobbled streets of Oxford. Sarah pulled her coat tighter against the sudden chill, her breath pluming in the crisp air. She hadn't intended to be out this late, but the library archives were a labyrinth of forgotten lore, and she had lost herself among the dusty tomes.",
-      "A faint rustling caught her attention. It seemed to emanate from the shadowed alleyway next to the apothecary. Her logical mind told her it was merely a stray cat, perhaps a fox foraging for scraps. Yet, an inexplicable curiosity, a tremor of anticipation, rooted her to the spot.",
-      "As she peered into the gloom, a soft, emerald luminescence began to pulse. It wasn't the harsh glare of a modern streetlamp, but a gentle, organic glow, like a captive firefly. The light revealed the outline of a heavy, oak door set deeply into the stone wall—a door she swore had never been there before."
+      "The quiet moments before dawn hold an extraordinary stillness. At 6:00 AM, before the rush of incoming notifications and demanding emails, the mind exists in its most pristine state. How you choose to design this first hour does not merely determine your morning—it establishes the trajectory for your entire day.",
+      "In modern behavioral psychology, this is known as the 'Keystone Habit'. When you consistently wake up at the same hour and execute a predictable sequence—drinking lukewarm water, stretching your muscles, and engaging in deliberate contemplation—you signal to your nervous system that you are in command of your time.",
+      "Notice the precise distinction in English between 'I used to wake up late' and 'I am used to waking up early'. The former denotes a habit firmly buried in the past; the latter describes an adaptation that has become natural and effortless in the present."
     ],
     hindi: [
-      "पुरानी घड़ी की मीनार ने आधी रात का घंटा बजाया, जिसकी गहरी गूंज ऑक्सफोर्ड की सुनसान, पथरीली गलियों में गूंज उठी। सारा ने अचानक आई ठंड से बचने के लिए अपने कोट को कसकर लपेट लिया, उसकी सांसें सर्द हवा में भाप बनकर उड़ रही थीं। उसका इतनी देर बाहर रहने का कोई इरादा नहीं था, लेकिन पुस्तकालय के अभिलेखागार भूली-बिसरी कहानियों की एक भूलभुलैया थे, और वह धूल भरी पुरानी किताबों के बीच खो गई थी।",
-      "तभी एक हल्की सी सरसराहट ने उसका ध्यान आकर्षित किया। ऐसा लगा कि यह आवाज दवा विक्रेता की दुकान के बगल वाली अंधेरी गली से आ रही थी। उसके तार्किक दिमाग ने कहा कि यह सिर्फ कोई आवारा बिल्ली होगी, या शायद खाने की तलाश में कोई लोमड़ी। फिर भी, एक अकथनीय जिज्ञासा और उत्सुकता के कंपकंपाहट ने उसके कदम वहीं रोक दिए।",
-      "जैसे ही उसने अंधेरे में झांका, एक हल्की पन्ना-हरी चमक धीरे-धीरे धड़कने लगी। यह किसी आधुनिक स्ट्रीटलाइट की तेज रोशनी नहीं थी, बल्कि एक कोमल, प्राकृतिक चमक थी, जैसे किसी पकड़े हुए जुगनू की रोशनी। इस प्रकाश ने पत्थर की दीवार में गहराई से लगे एक भारी ओक के दरवाजे की रूपरेखा को उजागर कर दिया—एक ऐसा दरवाजा जिसके बारे में वह कसम खा सकती थी कि वह पहले कभी वहां नहीं था।"
+      "भोर से पहले के शांत पल एक असाधारण स्तब्धता समेटे होते हैं। सुबह 6:00 बजे, आने वाले नोटिफिकेशन्स और ज़रूरी ईमेल्स की हड़बड़ाहट से पहले, मस्तिष्क अपनी सबसे शांत और स्पष्ट अवस्था में होता है। आप इस पहले घंटे को कैसे तैयार करते हैं, यह सिर्फ आपकी सुबह तय नहीं करता—बल्कि आपके पूरे दिन की दिशा निर्धारित करता है।",
+      "आधुनिक व्यवहार मनोविज्ञान में इसे 'कीस्टोन हैबिट' (मुख्य आधारभूत आदत) कहा जाता है। जब आप लगातार एक ही समय पर उठते हैं और एक निश्चित क्रम का पालन करते हैं—गुनगुना पानी पीना, मांसपेशियों को स्ट्रेच करना और शांत चिंतन करना—तो आप अपने तंत्रिका तंत्र को संकेत देते हैं कि आप अपने समय के स्वामी हैं।",
+      "अंग्रेजी में 'I used to wake up late' (मैं पहले देर से उठा करता था) और 'I am used to waking up early' (मुझे जल्दी उठने की आदत है) के बीच के बारीक अंतर पर ध्यान दें। पहला वाक्य भूतकाल की किसी पुरानी आदत को दर्शाता है, जबकि दूसरा वाक्य वर्तमान के उस सहज अनुकूलन का वर्णन करता है जो अब स्वाभाविक बन चुका है।"
     ]
   },
   {
     pageNumber: 2,
     english: [
-      "Her heart beat in tandem with the pulsing glow. She took a cautious step forward, the cobblestones cold beneath the soles of her leather boots. In her palm, she held a brass pocket watch handed down from her grandfather—a watch that had suddenly ceased ticking the moment the bell struck twelve.",
-      "As she touched the tarnished iron knocker of the door, a faint vibration ran through her fingertips. It wasn't cold metal; it was warm, like living wood bathed in summer afternoon sun. Carved intricately across the timber was an inscription in antique script: 'Only what is spoken with truth shall open the threshold.'"
+      "Hydration is the catalytic foundation of mental clarity. During seven to eight hours of nocturnal rest, your body naturally depletes moisture. A tall glass of room-temperature or lukewarm water with a squeeze of fresh lemon gently kick-starts your digestive organs and primes your cognitive faculties.",
+      "Many professionals confess, 'I cannot function until I have had my morning espresso.' While caffeine has proven ergogenic benefits, relying solely upon stimulants without prior hydration produces midday fatigue. Cultivate the ritual of hydrating before caffeinating.",
+      "Observe the phrasal verb 'kick-start' in conversation: 'A balanced morning routine kick-starts my cognitive momentum.' It implies an energetic, decisive ignition of your daily potential."
     ],
     hindi: [
-      "उसका दिल उस धड़कती रोशनी के साथ तेजी से धड़कने लगा। उसने संभलकर एक कदम आगे बढ़ाया, उसके चमड़े के जूतों के नीचे पत्थर की सड़क ठंडी थी। अपनी हथेली में उसने पीतल की एक पुरानी जेब घड़ी थाम रखी थी जो उसके दादाजी से मिली थी—एक ऐसी घड़ी जिसने ठीक बारह बजते ही अचानक टिक-टिक करना बंद कर दिया था।",
-      "जैसे ही उसने दरवाजे के पुराने लोहे के कुंडे को छुआ, उसकी उंगलियों में एक हल्की सी सिहरन दौड़ गई। यह कोई ठंडा धातु नहीं था; यह गर्म था, मानो गर्मियों की दोपहर की धूप में तपी जीवित लकड़ी हो। लकड़ी पर प्राचीन लिपि में जटिल नक्काशी की गई थी: 'केवल वही जो सत्य के साथ बोला जाए, इस चौखट को पार करा सकता है।'"
+      "जलयोजन (पानी पीना) मानसिक स्पष्टता की पहली बुनियाद है। सात से आठ घंटे की नींद के दौरान हमारा शरीर स्वाभाविक रूप से नमी खो देता है। ताज़े नींबू के रस के साथ एक गिलास सादा या गुनगुना पानी आपकी पाचन क्रिया को सक्रिय करता है और बौद्धिक क्षमताओं को तरोताज़ा करता है।",
+      "कई कामकाजी लोग अक्सर कहते हैं, 'जब तक मुझे सुबह की कॉफी नहीं मिलती, मैं काम ही नहीं कर पाता।' हालांकि कैफीन के अपने लाभ हैं, लेकिन पानी पिए बिना केवल उत्तेजक पदार्थों पर निर्भर रहने से दोपहर में थकान महसूस होने लगती है। कॉफी से पहले पानी पीने का नियम बनाएं।",
+      "बातचीत में 'kick-start' जैसे फ्रेजल वर्ब पर ध्यान दें: 'एक संतुलित सुबह की दिनचर्या मेरी मानसिक ऊर्जा को शुरू (kick-start) करती है।' इसका अर्थ है अपनी दैनिक क्षमता को एक ऊर्जावान और दृढ़ शुरुआत देना।"
     ]
   },
   {
     pageNumber: 3,
     english: [
-      "Sarah hesitated. In all her years studying linguistics and folklore, she had never encountered an artifact responsive to human vocal cadence. She cleared her dry throat and whispered, 'I seek understanding, not power.'",
-      "Instantly, the heavy lock clicked with the sound of a dozen tumblers shifting into perfect alignment. The oak door swung slowly inward without making a sound, revealing a candlelit corridor lined from floor to arched ceiling with leather-bound manuscripts and brass astrolabes."
+      "Digital discipline in the morning is a non-negotiable safeguard. The instant your fingers unlock your smartphone upon awakening, your mind is bombarded by external agendas, algorithmic anxieties, and global crises. You surrender proactive focus in exchange for reactive panic.",
+      "Instead, reserve the initial thirty minutes exclusively for offline endeavors. Allow natural sunlight to meet your retina, setting your circadian biological clock. Review your top three priorities for the day on physical paper, and take pride in proactive composure.",
+      "In fluent English, we describe this practice using gerunds: 'Avoiding social media early in the morning prevents cognitive overload.' When expressing advice or standard practices, leading with a gerund phrase lends authority and elegance to your spoken speech."
     ],
     hindi: [
-      "सारा झिझकी। भाषाविज्ञान और लोककथाओं के अपने वर्षों के अध्ययन में, उसने कभी भी ऐसा कोई उपकरण नहीं देखा था जो मानव आवाज की लय पर प्रतिक्रिया दे। उसने अपने सूखे गले को साफ किया और धीरे से कहा, 'मैं समझ की तलाश में हूँ, शक्ति की नहीं।'",
-      "तत्काल, भारी ताला एक साथ कई चाबियों के सही तालमेल में बैठने जैसी आवाज के साथ खुल गया। ओक का दरवाजा बिना कोई आवाज किए धीरे-धीरे अंदर की ओर खुला, और सामने एक मोमबत्तियों से जगमगाता गलियारा दिखाई दिया जिसकी दीवारों पर फर्श से लेकर मेहराबदार छत तक चमड़े की जिल्द वाली पांडुलिपियां और पीतल के यंत्र सजे थे।"
+      "सुबह के समय डिजिटल अनुशासन एक ऐसा नियम है जिससे कोई समझौता नहीं किया जा सकता। जागते ही जैसे ही आपकी उंगलियां स्मार्टफोन अनलॉक करती हैं, आपका दिमाग बाहरी मांगों, सूचनाओं के बोझ और चिंताओं से घिर जाता है। आप शांत और केंद्रित रहने के बजाय प्रतिक्रियाशील घबराहट के शिकार हो जाते हैं।",
+      "इसके बजाय, शुरुआती तीस मिनट पूरी तरह से ऑफलाइन गतिविधियों के लिए सुरक्षित रखें। प्राकृतिक धूप को अपनी आंखों तक पहुंचने दें, जिससे आपकी जैविक घड़ी संतुलित हो सके। किसी डायरी पर दिन की अपनी शीर्ष तीन प्राथमिकताओं को लिखें और शांत मन से दिन की शुरुआत करें।",
+      "प्रवाहपूर्ण अंग्रेजी में इस आदत को जेरंड (gerund) के साथ व्यक्त किया जाता है: 'Avoiding social media early in the morning prevents cognitive overload.' सलाह या नियमों की बात करते समय जेरंड से वाक्य शुरू करना आपकी बातचीत को प्रभावशाली बनाता है।"
     ]
   },
   {
     pageNumber: 4,
     english: [
-      "Stepping inside, the door sealed softly behind her. The air was rich with the scent of aged parchment, dried lavender, and beeswax. At the end of the long hall sat a mahogany desk, upon which rested a silver quill hovering gently above a blank sheet of vellum.",
-      "As she approached, the quill began to write in elegant cursive script, spelling out words as if anticipating her unspoken inquiries. 'Every journey begins with a word, and every fluency with courage.'"
+      "Language learning thrives within the structure of routine. Allocating merely fifteen minutes of deliberate oral practice each morning compounds exponentially across ninety days. Consistency invariably trumps occasional intensity.",
+      "Sarah, our case study from the audio dialogue, noted: 'When I practiced every day at the identical hour, English ceased being a chore and became second nature.' By anchoring vocabulary acquisition to your morning coffee or commute, fluency transforms from an abstract goal into a tangible daily reality.",
+      "As you conclude this chapter and prepare for the 41 translation sentences, keep your focus on precision: speak every sentence aloud, feel the rhythm of each clause, and embrace each correction as an essential stepping stone toward mastery."
     ],
     hindi: [
-      "अंदर कदम रखते ही दरवाजा उसके पीछे हौले से बंद हो गया। हवा पुरानी पांडुलिपियों, सूखे लैवेंडर और मोम की महक से भरी हुई थी। लंबे दालान के छोर पर महोगनी की एक मेज थी, जिस पर एक चांदी का पंखनुमा कलम कोरे चर्मपत्र के ऊपर धीरे-धीरे तैर रहा था।",
-      "जैसे ही वह पास पहुँची, कलम ने खूबसूरत लिखावट में लिखना शुरू किया, मानो उसके अनकहे सवालों का पहले से अनुमान लगा रहा हो: 'प्रत्येक यात्रा की शुरुआत एक शब्द से होती है, और प्रत्येक धाराप्रवाहता का जन्म साहस से होता है।'"
-    ]
-  },
-  {
-    pageNumber: 5,
-    english: [
-      "Sarah smiled, feeling the apprehension dissolve into wonder. She reached out and grasped the quill. For the first time in months, her thoughts felt crystalline and clear. She was no longer just an observer of language; she had stepped into its living tapestry.",
-      "With a steady hand, she wrote her reply beneath the prompt: 'I am ready to begin.'"
-    ],
-    hindi: [
-      "सारा मुस्कुराई, उसने महसूस किया कि उसकी घबराहट विस्मय और आनंद में बदल गई थी। उसने हाथ बढ़ाकर कलम थाम ली। महीनों में पहली बार उसके विचार पूरी तरह से स्पष्ट और केंद्रित थे। अब वह केवल भाषा की दर्शक नहीं थी; वह उसके जीवंत ताने-बाने में शामिल हो चुकी थी।",
-      "स्थिर हाथों से, उसने उस पंक्ति के ठीक नीचे अपना उत्तर लिखा: 'मैं शुरुआत करने के लिए तैयार हूँ।'"
+      "भाषा सीखने की कला एक नियमित दिनचर्या के अनुशासन में सबसे अधिक फलती-फूलती है। हर सुबह केवल पंद्रह मिनट का एकाग्र मौखिक अभ्यास नब्बे दिनों में चमत्कारी परिणाम देता है। कभी-कभार की जाने वाली कठिन मेहनत की तुलना में रोज़ाना की निरंतरता हमेशा भारी पड़ती है।",
+      "हमारे ऑडियो संवाद की शिक्षार्थी सारा ने कहा था: 'जब मैंने हर दिन एक ही समय पर अभ्यास किया, तो अंग्रेजी कोई बोझ नहीं बल्कि मेरी दूसरी प्रकृति बन गई।' जब आप नई शब्दावली सीखने को अपनी सुबह की चाय या दिनचर्या से जोड़ देते हैं, तो धाराप्रवाह बोलना कोई दूर का सपना नहीं बल्कि रोज़ की हकीकत बन जाता है।",
+      "जैसे ही आप इस अध्याय को पूरा करके 41 अनुवाद वाक्यों की ओर बढ़ते हैं, अपना ध्यान सटीकता पर रखें: हर वाक्य को बोलकर पढ़ें, उसकी लय को महसूस करें, और हर सुधार को अपनी सफलता की सीढ़ी मानें।"
     ]
   }
 ];
@@ -137,59 +102,41 @@ export const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
   {
     id: 'msg-1',
     sender: 'teacher',
-    text: "Hello Sarah! Ready to practice speaking about past habits today? Let's start with a simple question: What is something you used to do as a child but don't do anymore?",
+    text: "Welcome to Day 1 Conversation Practice! Today we explored the science of morning routines from your YouTube video, read 'The 6:00 AM Architect', and translated 41 sentences on daily habits.\n\nLet's put this into practice! To begin: What is the very first thing you usually do right after waking up in the morning?",
     timestamp: 'Today',
-    tip: 'Try starting with: "When I was younger, I used to..."'
-  },
-  {
-    id: 'msg-2',
-    sender: 'student',
-    text: "When I was younger, I used to playing the piano every day after school, but now I don't have time.",
-    timestamp: 'Today'
-  },
-  {
-    id: 'msg-3',
-    sender: 'teacher',
-    text: "Good start! I understand exactly what you mean. However, let's look at a small grammar point.",
-    timestamp: 'Today',
-    correction: {
-      original: '...used to playing...',
-      corrected: 'play',
-      rule: '"used to" is followed by the base form of the verb, not the -ing form.'
-    },
-    followup: "Can you try saying that sentence again?"
+    tip: 'Try using expressions from today, like: "Right after my alarm goes off, I usually..." or "The first thing I do is..."'
   }
 ];
 
 export const REPEATED_MISTAKES: MistakeItem[] = [
   {
     id: 'mistake-1',
-    title: 'Using "much" vs "many"',
+    title: 'Using "used to" with Gerunds vs Base Verbs',
     category: 'Grammar',
-    details: 'Incorrectly applied in 3 recent exercises.',
-    explanation: '"Much" is used with uncountable nouns (e.g., water, time, money), whereas "many" is used with countable plural nouns (e.g., books, apples, mistakes).',
-    incorrectExample: 'I don\'t have many time left before class.',
-    correctExample: 'I don\'t have much time left before class.',
-    rule: 'Use "much" for singular/uncountable quantities and "many" for countable items that can be enumerated.'
+    details: 'Crucial distinction highlighted in Day 1 translation and reading.',
+    explanation: 'When speaking of past discontinued habits, use "used to + base verb" (e.g., "I used to wake up late"). Only use "used to + verb-ing" when expressing familiarity ("I am used to waking up early").',
+    incorrectExample: 'I used to waking up late when I was a student.',
+    correctExample: 'I used to wake up late when I was a student.',
+    rule: '"used to" for past habits is strictly followed by the base infinitive form.'
   },
   {
     id: 'mistake-2',
-    title: 'Word stress in polysyllabic words',
-    category: 'Speaking',
-    details: 'AI Teacher noted hesitation 4 times.',
-    explanation: 'In words ending in "-tion", "-sion", or "-ic", the stress falls almost invariably on the penultimate (second-to-last) syllable.',
-    incorrectExample: 'CON-ver-sa-tion (stress on first syllable)',
-    correctExample: 'con-ver-SA-tion (primary stress on "sa")',
-    rule: 'Words ending in "-tion" (information, preparation, situation) emphasize the syllable right before "-tion".'
+    title: 'Prepositions with Meals and Commutes',
+    category: 'Grammar',
+    details: 'Observed in sentences 14 and 33.',
+    explanation: 'Use "for" with meals (e.g., "for breakfast", "for lunch") and "on" with public transit / travel paths (e.g., "on my way to work", "on the bus").',
+    incorrectExample: 'I eat oatmeal in breakfast and listen to podcasts in my way to work.',
+    correctExample: 'I eat oatmeal for breakfast and listen to podcasts on my way to work.',
+    rule: 'Meals take preposition "for"; transit paths take "on my way to".'
   },
   {
     id: 'mistake-3',
-    title: 'Gerunds following prepositions',
-    category: 'Grammar',
-    details: 'Flagged in Day 1 speaking practice.',
-    explanation: 'When a verb directly follows a preposition (in, on, at, about, forward to), it must take the gerund (-ing) form.',
-    incorrectExample: 'I look forward to see you tomorrow.',
-    correctExample: 'I look forward to seeing you tomorrow.',
-    rule: 'The "to" in "look forward to" is a preposition, requiring the gerund "seeing".'
+    title: 'Phrasal Verb "Kick-start" & "Tidy up"',
+    category: 'Speaking',
+    details: 'Emphasized in video dialogue and sentence 29.',
+    explanation: '"Kick-start" means to give energetic momentum to a process, and "tidy up" means to neatly organize a space.',
+    incorrectExample: 'A glass of water gives a start to my day.',
+    correctExample: 'A glass of water kick-starts my day.',
+    rule: 'Use natural English idioms and phrasal verbs for fluid conversational cadence.'
   }
 ];
