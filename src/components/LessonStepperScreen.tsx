@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import { LessonStep } from '../types';
+import { StepRestrictionModal } from './StepRestrictionModal';
 
 interface LessonStepperScreenProps {
   steps: LessonStep[];
   completedSentenceCount: number;
+  totalSentencesCount?: number;
+  dayNumber?: number;
+  topic?: string;
+  listeningHeading?: string;
+  readingHeading?: string;
+  pdfFilename?: string;
   onOpenListeningPractice: () => void;
   onOpenReadingPractice: () => void;
   onOpenTranslationPractice: () => void;
@@ -14,6 +21,12 @@ interface LessonStepperScreenProps {
 export const LessonStepperScreen: React.FC<LessonStepperScreenProps> = ({
   steps,
   completedSentenceCount,
+  totalSentencesCount = 30,
+  dayNumber = 1,
+  topic = 'Morning Routines & Habit Loops',
+  listeningHeading,
+  readingHeading,
+  pdfFilename,
   onOpenListeningPractice,
   onOpenReadingPractice,
   onOpenTranslationPractice,
@@ -21,54 +34,130 @@ export const LessonStepperScreen: React.FC<LessonStepperScreenProps> = ({
   onBackToHome,
 }) => {
   const [activeStepId, setActiveStepId] = useState<number>(1);
+  const [restrictionModal, setRestrictionModal] = useState<{
+    isOpen: boolean;
+    targetStepTitle: string;
+    requiredStepTitle: string;
+    requiredStepNumber: number;
+    message?: string;
+    onGoToRequired: () => void;
+  } | null>(null);
+
+  const handleTriggerLockPopup = (targetStepId: number) => {
+    if (targetStepId === 2) {
+      setRestrictionModal({
+        isOpen: true,
+        targetStepTitle: 'Step 02: Companion Reading',
+        requiredStepTitle: 'Video Listening',
+        requiredStepNumber: 1,
+        message: 'You cannot open the Reading companion yet. You must complete the Step 01 Video Listening session first.',
+        onGoToRequired: () => {
+          setRestrictionModal(null);
+          onOpenListeningPractice();
+        },
+      });
+    } else if (targetStepId === 3) {
+      const isStep1Done = steps[0]?.completed;
+      if (!isStep1Done) {
+        setRestrictionModal({
+          isOpen: true,
+          targetStepTitle: 'Step 03: Translation Practice',
+          requiredStepTitle: 'Video Listening',
+          requiredStepNumber: 1,
+          message: 'You must complete Step 01 (Video Listening) and Step 02 (Reading) before starting translation sentences.',
+          onGoToRequired: () => {
+            setRestrictionModal(null);
+            onOpenListeningPractice();
+          },
+        });
+      } else {
+        setRestrictionModal({
+          isOpen: true,
+          targetStepTitle: 'Step 03: Translation Practice',
+          requiredStepTitle: 'Companion Reading Guide',
+          requiredStepNumber: 2,
+          message: 'Please complete Step 02 (Reading Companion) before beginning translation exercises.',
+          onGoToRequired: () => {
+            setRestrictionModal(null);
+            onOpenReadingPractice();
+          },
+        });
+      }
+    } else if (targetStepId === 4) {
+      setRestrictionModal({
+        isOpen: true,
+        targetStepTitle: 'Step 04: Spoken AI Dialogue',
+        requiredStepTitle: 'Sentence Translation Mastery',
+        requiredStepNumber: 3,
+        message: `Please complete all sentence translation exercises (${completedSentenceCount} completed) before starting the oral AI conversation.`,
+        onGoToRequired: () => {
+          setRestrictionModal(null);
+          onOpenTranslationPractice();
+        },
+      });
+    }
+  };
 
   const handleStepClick = (step: LessonStep) => {
     setActiveStepId(step.id);
-    if (!step.locked) {
+    if (!step.locked || step.completed) {
       if (step.id === 1) onOpenListeningPractice();
       else if (step.id === 2) onOpenReadingPractice();
       else if (step.id === 3) onOpenTranslationPractice();
       else if (step.id === 4) onOpenAIConversation();
+    } else {
+      handleTriggerLockPopup(step.id);
     }
   };
 
-  const currentStep = steps.find((s) => s.id === activeStepId) || steps[0];
-
   return (
-    <main className="flex-grow w-full max-w-[1200px] mx-auto px-4 md:px-12 py-8 md:py-12 flex flex-col items-center min-h-[calc(100vh-160px)]">
+    <main className="flex-grow w-full max-w-[1200px] mx-auto px-4 md:px-12 py-8 md:py-12 flex flex-col items-center min-h-[calc(100vh-160px)] bg-white text-[#111827]">
+      {/* Pop-up message modal for step restrictions */}
+      {restrictionModal && (
+        <StepRestrictionModal
+          isOpen={restrictionModal.isOpen}
+          targetStepTitle={restrictionModal.targetStepTitle}
+          requiredStepTitle={restrictionModal.requiredStepTitle}
+          requiredStepNumber={restrictionModal.requiredStepNumber}
+          message={restrictionModal.message}
+          onClose={() => setRestrictionModal(null)}
+          onGoToRequired={restrictionModal.onGoToRequired}
+        />
+      )}
+
       {/* Breadcrumb */}
       <div className="w-full max-w-3xl flex items-center justify-between mb-6">
         <button
           onClick={onBackToHome}
-          className="flex items-center gap-2 text-[#888888] hover:text-[#D4AF37] transition-colors text-[10px] uppercase tracking-[0.25em] font-medium cursor-pointer"
+          className="flex items-center gap-2 text-[#4B5563] hover:text-[#1B4D3E] transition-colors text-[10px] uppercase tracking-[0.25em] font-semibold cursor-pointer"
         >
           <span className="material-symbols-outlined text-[16px]">arrow_back</span>
           Curriculum Overview
         </button>
-        <span className="text-[9px] uppercase tracking-[0.35em] text-[#D4AF37] bg-[#262010] px-3 py-1 rounded-full border border-[#D4AF37]/40">
-          Module 01 // Daily Habits Workflow
+        <span className="text-[9px] uppercase tracking-[0.3em] text-[#1B4D3E] bg-[#E8F2EE] px-3 py-1 rounded-full border border-[#1B4D3E]/30 font-bold">
+          Day {dayNumber.toString().padStart(2, '0')} // Structured Daily Architecture
         </span>
       </div>
 
       {/* Lesson Header */}
       <div className="w-full max-w-3xl mb-10 text-center">
-        <div className="text-[10px] uppercase tracking-[0.4em] text-[#888888] mb-2 font-light">
-          Structured Daily Architecture
+        <div className="text-[10px] uppercase tracking-[0.4em] text-[#1B4D3E] mb-2 font-bold">
+          Step-by-Step Daily Mastery
         </div>
-        <h1 className="font-serif italic text-[32px] md:text-[46px] leading-tight font-light text-[#EFEFEF] mb-3">
-          Day 01: Morning Routines & Habit Loops
+        <h1 className="font-serif italic text-[32px] md:text-[46px] leading-tight font-medium text-[#111827] mb-3">
+          Day {dayNumber.toString().padStart(2, '0')}: {topic}
         </h1>
-        <div className="w-12 h-[1px] bg-[#D4AF37] mx-auto mb-3"></div>
-        <p className="font-sans text-[14px] md:text-[16px] text-[#AAAAAA]">
-          Complete each step in sequence: Listening → Reading → 41 Translation Sentences → AI Conversation.
+        <div className="w-12 h-[2px] bg-[#1B4D3E] mx-auto mb-3"></div>
+        <p className="font-sans text-[14px] md:text-[16px] text-[#4B5563]">
+          Sequential unlock enabled: 1. Listening → 2. Reading → 3. Translation Sentences → 4. AI Conversation.
         </p>
       </div>
 
       {/* Stepper Container */}
-      <div className="w-full max-w-3xl bg-[#1A1A1A] border border-[#333333] p-6 md:p-10 flex flex-col md:flex-row gap-8 shadow-[0px_8px_32px_rgba(0,0,0,0.5)]">
+      <div className="w-full max-w-3xl bg-white border border-[#E2E8E5] p-6 md:p-10 flex flex-col md:flex-row gap-8 shadow-[0px_8px_32px_rgba(27,77,62,0.05)] rounded-sm">
         {/* Left Side: Stepper List */}
-        <div className="flex-shrink-0 w-full md:w-68 border-b md:border-b-0 md:border-r border-[#333333] pb-6 md:pb-0 md:pr-6">
-          <div className="flex flex-col relative space-y-4">
+        <div className="flex-shrink-0 w-full md:w-68 border-b md:border-b-0 md:border-r border-[#E2E8E5] pb-6 md:pb-0 md:pr-6">
+          <div className="flex flex-col relative space-y-3">
             {steps.map((step) => {
               const isActive = step.id === activeStepId;
               const isDone = step.completed;
@@ -78,27 +167,27 @@ export const LessonStepperScreen: React.FC<LessonStepperScreenProps> = ({
                 <div
                   key={step.id}
                   onClick={() => handleStepClick(step)}
-                  className={`relative flex items-center gap-3.5 z-10 group cursor-pointer transition-all p-2 rounded ${
-                    isActive ? 'bg-[#222222] border-l-2 border-[#D4AF37]' : ''
-                  } ${isLocked ? 'opacity-50' : 'opacity-100'}`}
+                  className={`relative flex items-center gap-3 z-10 group cursor-pointer transition-all p-2.5 rounded-sm ${
+                    isActive ? 'bg-[#E8F2EE] border-l-4 border-[#1B4D3E]' : 'hover:bg-[#F8FAF9]'
+                  } ${isLocked ? 'opacity-65' : 'opacity-100'}`}
                 >
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center font-serif italic text-[13px] transition-all shrink-0 ${
+                    className={`w-8 h-8 rounded-full flex items-center justify-center font-serif italic text-[13px] transition-all shrink-0 font-bold ${
                       isDone
-                        ? 'bg-[#18261D] text-[#68BA89] border border-[#68BA89]/60'
+                        ? 'bg-[#1B4D3E] text-white'
                         : isActive
-                        ? 'bg-[#262010] text-[#D4AF37] border border-[#D4AF37] shadow-[0px_0px_10px_rgba(212,175,55,0.3)]'
+                        ? 'bg-[#1B4D3E] text-white shadow-xs'
                         : isLocked
-                        ? 'bg-[#141414] border border-[#333333] text-[#555555]'
-                        : 'bg-[#1A1A1A] border border-[#444444] text-[#888888]'
+                        ? 'bg-[#F3F4F6] border border-[#E5E7EB] text-[#9CA3AF]'
+                        : 'bg-white border border-[#CBD5E1] text-[#4B5563]'
                     }`}
                   >
                     {isDone ? (
-                      <span className="material-symbols-outlined text-[16px] text-[#68BA89]">
+                      <span className="material-symbols-outlined text-[16px] text-white">
                         check
                       </span>
                     ) : isLocked ? (
-                      <span className="material-symbols-outlined text-[14px] text-[#555555]">
+                      <span className="material-symbols-outlined text-[14px] text-[#9CA3AF]">
                         lock
                       </span>
                     ) : (
@@ -108,22 +197,22 @@ export const LessonStepperScreen: React.FC<LessonStepperScreenProps> = ({
 
                   <div className="flex flex-col">
                     <div className="flex items-center gap-2">
-                      <span className="font-sans text-[8px] uppercase tracking-[0.25em] text-[#777777]">
+                      <span className="font-sans text-[8px] uppercase tracking-[0.25em] text-[#6B7280] font-semibold">
                         Step 0{step.id}
                       </span>
                       {step.id === 3 && (
-                        <span className="text-[9px] text-[#D4AF37] font-mono font-semibold">
-                          ({completedSentenceCount}/41)
+                        <span className="text-[9px] text-[#1B4D3E] font-mono font-bold">
+                          ({completedSentenceCount})
                         </span>
                       )}
                     </div>
                     <span
-                      className={`text-[12px] tracking-wide ${
+                      className={`text-[13px] tracking-wide ${
                         isActive
-                          ? 'text-[#EFEFEF] font-serif italic font-medium'
+                          ? 'text-[#111827] font-serif italic font-semibold'
                           : isLocked
-                          ? 'text-[#666666]'
-                          : 'text-[#AAAAAA]'
+                          ? 'text-[#9CA3AF]'
+                          : 'text-[#374151]'
                       }`}
                     >
                       {step.title}
@@ -139,21 +228,21 @@ export const LessonStepperScreen: React.FC<LessonStepperScreenProps> = ({
         <div className="flex-grow flex flex-col justify-center min-h-[360px] text-center p-2">
           {activeStepId === 1 && (
             <div className="flex flex-col items-center max-w-md mx-auto w-full animate-fade-in">
-              <div className="w-16 h-16 rounded-full border border-[#D4AF37] bg-[#D4AF37]/10 flex items-center justify-center mb-4 text-[#D4AF37]">
+              <div className="w-16 h-16 rounded-full border border-[#1B4D3E]/30 bg-[#E8F2EE] flex items-center justify-center mb-4 text-[#1B4D3E]">
                 <span className="material-symbols-outlined text-3xl">play_circle</span>
               </div>
-              <div className="text-[9px] uppercase tracking-[0.35em] text-[#888888] mb-1">
+              <div className="text-[9px] uppercase tracking-[0.35em] text-[#1B4D3E] mb-1 font-bold">
                 Step 1 of 4
               </div>
-              <h2 className="font-serif italic text-2xl text-[#EFEFEF] mb-2">
+              <h2 className="font-serif italic text-2xl text-[#111827] mb-2 font-medium">
                 YouTube Listening Experience
               </h2>
-              <p className="text-xs text-[#AAAAAA] leading-relaxed mb-6">
-                Watch the curated YouTube video on morning routines and habit loops. Discover essential phrasal verbs and temporal expressions.
+              <p className="text-xs text-[#4B5563] leading-relaxed mb-6">
+                Watch the curated video on {topic}. Completing this video listening session is strictly required to unlock Step 2.
               </p>
               <button
                 onClick={onOpenListeningPractice}
-                className="bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] font-sans text-[11px] uppercase tracking-[0.25em] font-semibold py-4 px-8 shadow-[0px_4px_20px_rgba(212,175,55,0.25)] flex items-center gap-2 cursor-pointer group"
+                className="bg-[#1B4D3E] hover:bg-[#153E32] text-white font-sans text-[11px] uppercase tracking-[0.25em] font-semibold py-4 px-8 shadow-[0px_4px_20px_rgba(27,77,62,0.2)] flex items-center gap-2 cursor-pointer group rounded-sm"
               >
                 Open Listening Section
                 <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
@@ -165,30 +254,35 @@ export const LessonStepperScreen: React.FC<LessonStepperScreenProps> = ({
 
           {activeStepId === 2 && (
             <div className="flex flex-col items-center max-w-md mx-auto w-full animate-fade-in">
-              <div className="w-16 h-16 rounded-full border border-[#D4AF37] bg-[#D4AF37]/10 flex items-center justify-center mb-4 text-[#D4AF37]">
+              <div className="w-16 h-16 rounded-full border border-[#1B4D3E]/30 bg-[#E8F2EE] flex items-center justify-center mb-4 text-[#1B4D3E]">
                 <span className="material-symbols-outlined text-3xl">picture_as_pdf</span>
               </div>
-              <div className="text-[9px] uppercase tracking-[0.35em] text-[#888888] mb-1">
+              <div className="text-[9px] uppercase tracking-[0.35em] text-[#1B4D3E] mb-1 font-bold">
                 Step 2 of 4
               </div>
-              <h2 className="font-serif italic text-2xl text-[#EFEFEF] mb-2">
-                The 6:00 AM Architect (PDF Guide)
+              <h2 className="font-serif italic text-2xl text-[#111827] mb-2 font-medium">
+                {pdfFilename || 'Companion Reading (PDF Guide)'}
               </h2>
-              <p className="text-xs text-[#AAAAAA] leading-relaxed mb-6">
+              <p className="text-xs text-[#4B5563] leading-relaxed mb-6">
                 Read the companion chapter connected to the video topic. Includes parallel Hindi translations and phrasal verb deep dives.
               </p>
               <button
-                onClick={onOpenReadingPractice}
-                disabled={steps[1].locked}
-                className={`font-sans text-[11px] uppercase tracking-[0.25em] font-semibold py-4 px-8 flex items-center gap-2 cursor-pointer group ${
-                  steps[1].locked
-                    ? 'bg-[#222222] text-[#666666] cursor-not-allowed border border-[#333333]'
-                    : 'bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] shadow-[0px_4px_20px_rgba(212,175,55,0.25)]'
+                onClick={() => {
+                  if (steps[1].locked && !steps[1].completed) {
+                    handleTriggerLockPopup(2);
+                  } else {
+                    onOpenReadingPractice();
+                  }
+                }}
+                className={`font-sans text-[11px] uppercase tracking-[0.25em] font-semibold py-4 px-8 flex items-center gap-2 cursor-pointer group rounded-sm ${
+                  steps[1].locked && !steps[1].completed
+                    ? 'bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280] border border-[#E5E7EB]'
+                    : 'bg-[#1B4D3E] hover:bg-[#153E32] text-white shadow-[0px_4px_20px_rgba(27,77,62,0.2)]'
                 }`}
               >
-                {steps[1].locked ? 'Locked (Finish Step 1 First)' : 'Open Reading Section'}
+                {steps[1].locked && !steps[1].completed ? 'Locked (Complete Step 1 First)' : 'Open Reading Section'}
                 <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
-                  arrow_forward
+                  {steps[1].locked && !steps[1].completed ? 'lock' : 'arrow_forward'}
                 </span>
               </button>
             </div>
@@ -196,30 +290,35 @@ export const LessonStepperScreen: React.FC<LessonStepperScreenProps> = ({
 
           {activeStepId === 3 && (
             <div className="flex flex-col items-center max-w-md mx-auto w-full animate-fade-in">
-              <div className="w-16 h-16 rounded-full border border-[#D4AF37] bg-[#D4AF37]/10 flex items-center justify-center mb-4 text-[#D4AF37]">
+              <div className="w-16 h-16 rounded-full border border-[#1B4D3E]/30 bg-[#E8F2EE] flex items-center justify-center mb-4 text-[#1B4D3E]">
                 <span className="material-symbols-outlined text-3xl">translate</span>
               </div>
-              <div className="text-[9px] uppercase tracking-[0.35em] text-[#888888] mb-1">
+              <div className="text-[9px] uppercase tracking-[0.35em] text-[#1B4D3E] mb-1 font-bold">
                 Step 3 of 4
               </div>
-              <h2 className="font-serif italic text-2xl text-[#EFEFEF] mb-2">
-                41 Translation Sentences
+              <h2 className="font-serif italic text-2xl text-[#111827] mb-2 font-medium">
+                Translation Practice Sentences
               </h2>
-              <p className="text-xs text-[#AAAAAA] leading-relaxed mb-6">
-                Practice 41 daily routine sentences one by one with hints, speech recognition, and instant correctness evaluation.
+              <p className="text-xs text-[#4B5563] leading-relaxed mb-6">
+                Practice topic sentences one by one with speech recognition, hint tools, and instant evaluation.
               </p>
               <button
-                onClick={onOpenTranslationPractice}
-                disabled={steps[2].locked}
-                className={`font-sans text-[11px] uppercase tracking-[0.25em] font-semibold py-4 px-8 flex items-center gap-2 cursor-pointer group ${
-                  steps[2].locked
-                    ? 'bg-[#222222] text-[#666666] cursor-not-allowed border border-[#333333]'
-                    : 'bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] shadow-[0px_4px_20px_rgba(212,175,55,0.25)]'
+                onClick={() => {
+                  if (steps[2].locked && !steps[2].completed) {
+                    handleTriggerLockPopup(3);
+                  } else {
+                    onOpenTranslationPractice();
+                  }
+                }}
+                className={`font-sans text-[11px] uppercase tracking-[0.25em] font-semibold py-4 px-8 flex items-center gap-2 cursor-pointer group rounded-sm ${
+                  steps[2].locked && !steps[2].completed
+                    ? 'bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280] border border-[#E5E7EB]'
+                    : 'bg-[#1B4D3E] hover:bg-[#153E32] text-white shadow-[0px_4px_20px_rgba(27,77,62,0.2)]'
                 }`}
               >
-                {steps[2].locked ? 'Locked (Finish Step 2 First)' : 'Start Translation (41)'}
+                {steps[2].locked && !steps[2].completed ? 'Locked (Complete Step 2 First)' : 'Start Translation Practice'}
                 <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
-                  arrow_forward
+                  {steps[2].locked && !steps[2].completed ? 'lock' : 'arrow_forward'}
                 </span>
               </button>
             </div>
@@ -227,30 +326,35 @@ export const LessonStepperScreen: React.FC<LessonStepperScreenProps> = ({
 
           {activeStepId === 4 && (
             <div className="flex flex-col items-center max-w-md mx-auto w-full animate-fade-in">
-              <div className="w-16 h-16 rounded-full border border-[#D4AF37] bg-[#D4AF37]/10 flex items-center justify-center mb-4 text-[#D4AF37]">
+              <div className="w-16 h-16 rounded-full border border-[#1B4D3E]/30 bg-[#E8F2EE] flex items-center justify-center mb-4 text-[#1B4D3E]">
                 <span className="material-symbols-outlined text-3xl">record_voice_over</span>
               </div>
-              <div className="text-[9px] uppercase tracking-[0.35em] text-[#888888] mb-1">
+              <div className="text-[9px] uppercase tracking-[0.35em] text-[#1B4D3E] mb-1 font-bold">
                 Step 4 of 4
               </div>
-              <h2 className="font-serif italic text-2xl text-[#EFEFEF] mb-2">
+              <h2 className="font-serif italic text-2xl text-[#111827] mb-2 font-medium">
                 AI Conversation Practice
               </h2>
-              <p className="text-xs text-[#AAAAAA] leading-relaxed mb-6">
+              <p className="text-xs text-[#4B5563] leading-relaxed mb-6">
                 Converse with your AI tutor using the video and reading concepts. Receive instant syntactic corrections and spoken feedback.
               </p>
               <button
-                onClick={onOpenAIConversation}
-                disabled={steps[3].locked}
-                className={`font-sans text-[11px] uppercase tracking-[0.25em] font-semibold py-4 px-8 flex items-center gap-2 cursor-pointer group ${
-                  steps[3].locked
-                    ? 'bg-[#222222] text-[#666666] cursor-not-allowed border border-[#333333]'
-                    : 'bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] shadow-[0px_4px_20px_rgba(212,175,55,0.25)]'
+                onClick={() => {
+                  if (steps[3].locked && !steps[3].completed) {
+                    handleTriggerLockPopup(4);
+                  } else {
+                    onOpenAIConversation();
+                  }
+                }}
+                className={`font-sans text-[11px] uppercase tracking-[0.25em] font-semibold py-4 px-8 flex items-center gap-2 cursor-pointer group rounded-sm ${
+                  steps[3].locked && !steps[3].completed
+                    ? 'bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#6B7280] border border-[#E5E7EB]'
+                    : 'bg-[#1B4D3E] hover:bg-[#153E32] text-white shadow-[0px_4px_20px_rgba(27,77,62,0.2)]'
                 }`}
               >
-                {steps[3].locked ? 'Locked (Complete All 41 Translations First)' : 'Enter AI Conversation'}
+                {steps[3].locked && !steps[3].completed ? 'Locked (Finish Translations First)' : 'Enter AI Conversation'}
                 <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">
-                  arrow_forward
+                  {steps[3].locked && !steps[3].completed ? 'lock' : 'arrow_forward'}
                 </span>
               </button>
             </div>

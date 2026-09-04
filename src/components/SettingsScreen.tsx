@@ -33,25 +33,24 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
     setTimeout(() => setSavedNotification(false), 2500);
   };
 
-
   return (
-    <main className="flex-grow w-full max-w-[900px] mx-auto px-4 md:px-12 py-8 md:py-12 flex flex-col min-h-[calc(100vh-160px)] animate-fade-in">
+    <main className="flex-grow w-full max-w-[900px] mx-auto px-4 md:px-12 py-8 md:py-12 flex flex-col min-h-[calc(100vh-160px)] animate-fade-in bg-white text-[#111827]">
       {/* Header */}
       <div className="mb-8">
-        <div className="text-[10px] uppercase tracking-[0.4em] text-[#888888] mb-2 font-light">
+        <div className="text-[10px] uppercase tracking-[0.4em] text-[#1B4D3E] mb-2 font-bold">
           Configuration & Localization
         </div>
-        <h1 className="font-serif italic text-[32px] md:text-[46px] leading-tight font-light text-[#EFEFEF] mb-2">
+        <h1 className="font-serif italic text-[32px] md:text-[46px] leading-tight font-medium text-[#111827] mb-2">
           Curriculum Parameters
         </h1>
-        <div className="w-12 h-[1px] bg-[#D4AF37] mb-3"></div>
-        <p className="font-sans text-[14px] md:text-[16px] text-[#AAAAAA]">
+        <div className="w-12 h-[2px] bg-[#1B4D3E] mb-3"></div>
+        <p className="font-sans text-[14px] md:text-[16px] text-[#4B5563]">
           Personalize pedagogical targets, native glossaries, and synthesized speech cadence.
         </p>
       </div>
 
       {savedNotification && (
-        <div className="mb-6 p-4 bg-[#19241B] border border-[#2B4B32] text-[#84C99A] flex items-center gap-3 animate-fade-in">
+        <div className="mb-6 p-4 bg-[#E8F2EE] border border-[#1B4D3E]/30 text-[#1B4D3E] flex items-center gap-3 animate-fade-in rounded-sm">
           <span className="material-symbols-outlined text-lg">check_circle</span>
           <span className="text-xs uppercase tracking-wider font-semibold">Curriculum parameters committed successfully.</span>
         </div>
@@ -59,20 +58,20 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
       <div className="space-y-8">
         {/* Learning Profile Section */}
-        <section className="bg-[#1A1A1A] border border-[#333333] p-6 md:p-8 shadow-[0px_8px_32px_rgba(0,0,0,0.5)] space-y-6">
-          <h2 className="font-serif italic text-2xl font-light text-[#EFEFEF] pb-3 border-b border-[#2A2A2A]">
+        <section className="bg-white border border-[#E2E8E5] p-6 md:p-8 shadow-xs space-y-6 rounded-sm">
+          <h2 className="font-serif italic text-2xl font-medium text-[#111827] pb-3 border-b border-[#E5E7EB]">
             Pedagogical Profile
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-[0.25em] text-[#888888] mb-2">
+              <label className="block text-[10px] font-bold uppercase tracking-[0.25em] text-[#6B7280] mb-2">
                 Proficiency Level Benchmark
               </label>
               <select
                 value={targetLevel}
                 onChange={(e) => setTargetLevel(e.target.value)}
-                className="w-full bg-[#111111] border border-[#333333] px-4 py-3 text-sm text-[#EFEFEF] focus:outline-none focus:border-[#D4AF37]"
+                className="w-full bg-white border border-[#CBD5E1] px-4 py-3 text-sm text-[#111827] focus:outline-none focus:border-[#1B4D3E] rounded-sm"
               >
                 <option value="A1 Beginner">A1 Beginner</option>
                 <option value="A2 Elementary">A2 Elementary</option>
@@ -83,13 +82,13 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-[0.25em] text-[#888888] mb-2">
+              <label className="block text-[10px] font-bold uppercase tracking-[0.25em] text-[#6B7280] mb-2">
                 Comparative Native Gloss
               </label>
               <select
                 value={nativeLanguage}
                 onChange={(e) => setNativeLanguage(e.target.value)}
-                className="w-full bg-[#111111] border border-[#333333] px-4 py-3 text-sm text-[#EFEFEF] focus:outline-none focus:border-[#D4AF37]"
+                className="w-full bg-white border border-[#CBD5E1] px-4 py-3 text-sm text-[#111827] focus:outline-none focus:border-[#1B4D3E] rounded-sm"
               >
                 <option value="Hindi (हिंदी)">Hindi (हिंदी)</option>
                 <option value="Spanish (Español)">Spanish (Español)</option>
@@ -100,7 +99,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-[0.25em] text-[#888888] mb-2">
+              <label className="block text-[10px] font-bold uppercase tracking-[0.25em] text-[#6B7280] mb-2">
                 Daily Immersive Allocation
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -108,10 +107,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                   <button
                     key={goal}
                     onClick={() => setDailyGoal(goal)}
-                    className={`py-2.5 text-[10px] font-semibold uppercase tracking-wider border transition-all cursor-pointer ${
+                    className={`py-2.5 text-[10px] font-semibold uppercase tracking-wider border transition-all cursor-pointer rounded-sm ${
                       dailyGoal === goal
-                        ? 'bg-[#262010] border-[#D4AF37] text-[#D4AF37]'
-                        : 'bg-[#111111] border-[#333333] text-[#AAAAAA] hover:border-[#666666]'
+                        ? 'bg-[#1B4D3E] border-[#1B4D3E] text-white font-bold'
+                        : 'bg-[#F8FAF9] border-[#E2E8E5] text-[#4B5563] hover:border-[#1B4D3E]/40'
                     }`}
                   >
                     {goal}
@@ -121,7 +120,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
             </div>
 
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-[0.25em] text-[#888888] mb-2">
+              <label className="block text-[10px] font-bold uppercase tracking-[0.25em] text-[#6B7280] mb-2">
                 Acoustic Cadence Speed
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -129,10 +128,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                   <button
                     key={spd}
                     onClick={() => setSpeechSpeed(spd)}
-                    className={`py-2.5 text-[10px] font-semibold uppercase tracking-wider border transition-all cursor-pointer ${
+                    className={`py-2.5 text-[10px] font-semibold uppercase tracking-wider border transition-all cursor-pointer rounded-sm ${
                       speechSpeed === spd
-                        ? 'bg-[#262010] border-[#D4AF37] text-[#D4AF37]'
-                        : 'bg-[#111111] border-[#333333] text-[#AAAAAA] hover:border-[#666666]'
+                        ? 'bg-[#1B4D3E] border-[#1B4D3E] text-white font-bold'
+                        : 'bg-[#F8FAF9] border-[#E2E8E5] text-[#4B5563] hover:border-[#1B4D3E]/40'
                     }`}
                   >
                     {spd}
@@ -143,18 +142,18 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
           </div>
         </section>
 
-        {/* Supabase Account & Google Authentication */}
-        <section className="bg-[#1A1A1A] border border-[#333333] p-6 md:p-8 shadow-[0px_8px_32px_rgba(0,0,0,0.5)] space-y-6">
-          <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2A]">
-            <h2 className="font-serif italic text-2xl font-light text-[#EFEFEF]">
-              Account & Cloud Database
+        {/* Account & Storage Section */}
+        <section className="bg-white border border-[#E2E8E5] p-6 md:p-8 shadow-xs space-y-6 rounded-sm">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+            <h2 className="font-serif italic text-2xl font-medium text-[#111827]">
+              Account & Storage
             </h2>
-            <span className="text-[9px] uppercase tracking-[0.25em] bg-[#16241b] text-[#68BA89] px-2.5 py-0.5 border border-[#68BA89]/30 font-semibold">
-              Supabase Persistence Active
+            <span className="text-[9px] uppercase tracking-[0.25em] bg-[#E8F2EE] text-[#1B4D3E] px-2.5 py-0.5 border border-[#1B4D3E]/30 font-bold rounded-xs">
+              Local & Cloud Sync Active
             </span>
           </div>
 
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 bg-[#141414] border border-[#282828]">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 bg-[#F8FAF9] border border-[#E2E8E5] rounded-sm">
             <div className="flex items-center gap-3">
               {user ? (
                 <>
@@ -162,33 +161,33 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                     <img
                       src={user.avatar_url}
                       alt={user.full_name}
-                      className="w-12 h-12 rounded-full object-cover border border-[#D4AF37]"
+                      className="w-12 h-12 rounded-full object-cover border border-[#1B4D3E]"
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-[#262010] border border-[#D4AF37] text-[#D4AF37] flex items-center justify-center font-serif text-lg">
+                    <div className="w-12 h-12 rounded-full bg-[#E8F2EE] border border-[#1B4D3E] text-[#1B4D3E] flex items-center justify-center font-serif text-lg font-bold">
                       {user.full_name.charAt(0)}
                     </div>
                   )}
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-[#EFEFEF]">{user.full_name}</span>
+                      <span className="text-sm font-semibold text-[#111827]">{user.full_name}</span>
                       {user.is_admin && (
-                        <span className="text-[9px] uppercase tracking-wider text-[#D4AF37] font-semibold bg-[#262010] px-2 py-0.5 border border-[#D4AF37]/40">
+                        <span className="text-[9px] uppercase tracking-wider text-[#1B4D3E] font-bold bg-[#E8F2EE] px-2 py-0.5 border border-[#1B4D3E]/40 rounded-xs">
                           Curriculum Admin
                         </span>
                       )}
                     </div>
-                    <span className="text-xs text-[#888888]">{user.email}</span>
-                    <p className="text-[11px] text-[#68BA89] mt-0.5">
-                      ✓ Progress automatically synchronized to cloud
+                    <span className="text-xs text-[#6B7280]">{user.email}</span>
+                    <p className="text-[11px] text-[#1B4D3E] mt-0.5 font-medium">
+                      ✓ Progress automatically synchronized
                     </p>
                   </div>
                 </>
               ) : (
                 <div>
-                  <h3 className="text-sm font-semibold text-[#EFEFEF]">Guest Learner Mode</h3>
-                  <p className="text-xs text-[#888888] mt-0.5">
+                  <h3 className="text-sm font-semibold text-[#111827]">Guest Learner Mode</h3>
+                  <p className="text-xs text-[#6B7280] mt-0.5">
                     Log in with your Google account to keep your 90-day progress permanently saved across devices.
                   </p>
                 </div>
@@ -199,14 +198,14 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               {user ? (
                 <button
                   onClick={onSignOut}
-                  className="px-4 py-2.5 bg-[#222222] hover:bg-[#333333] border border-[#444444] text-[#CCCCCC] hover:text-white text-xs font-sans uppercase tracking-wider transition-colors cursor-pointer"
+                  className="px-4 py-2.5 bg-white hover:bg-[#F3F4F6] border border-[#CBD5E1] text-[#374151] hover:text-[#111827] text-xs font-sans uppercase tracking-wider transition-colors cursor-pointer rounded-sm"
                 >
                   Sign Out
                 </button>
               ) : (
                 <button
                   onClick={onLoginWithGoogle}
-                  className="bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] px-5 py-2.5 font-sans text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-[0px_4px_16px_rgba(212,175,55,0.25)]"
+                  className="bg-[#1B4D3E] hover:bg-[#153E32] text-white px-5 py-2.5 font-sans text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-xs rounded-sm"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path
@@ -234,47 +233,47 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
           {/* Admin Portal Gateway */}
           {user?.is_admin ? (
-            <div className="p-4 bg-[#211B10] border border-[#523F16] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-4 bg-[#E8F2EE] border border-[#1B4D3E]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-sm">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[9px] uppercase tracking-[0.25em] text-[#D4AF37] font-semibold">
+                  <span className="text-[9px] uppercase tracking-[0.25em] text-[#1B4D3E] font-bold">
                     Administrator Panel Active
                   </span>
-                  <span className="text-[9px] bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 border border-[#D4AF37]/30 font-medium">
+                  <span className="text-[9px] bg-[#1B4D3E]/15 text-[#1B4D3E] px-2 py-0.5 border border-[#1B4D3E]/30 font-semibold rounded-xs">
                     tauheedjahan07@gmail.com
                   </span>
                 </div>
-                <p className="text-xs text-[#CCCCCC]">
-                  You are authenticated as the Lead Curriculum Administrator. You have full access to author learning days, upload companion PDFs, and generate translation sentences.
+                <p className="text-xs text-[#374151]">
+                  You are authenticated as the Lead Curriculum Administrator. You have full access to author learning days, upload companion PDFs, and manage translations manually.
                 </p>
               </div>
               <button
                 onClick={onOpenAdmin}
-                className="bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] px-5 py-2.5 font-sans text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                className="bg-[#1B4D3E] hover:bg-[#153E32] text-white px-5 py-2.5 font-sans text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shrink-0 rounded-sm"
               >
                 <span className="material-symbols-outlined text-sm">edit_note</span>
                 Open Admin Portal
               </button>
             </div>
           ) : (
-            <div className="p-4 bg-[#141414] border border-[#282828] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-4 bg-[#F8FAF9] border border-[#E2E8E5] flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-sm">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="material-symbols-outlined text-xs text-[#888888]">lock</span>
-                  <span className="text-[9px] uppercase tracking-[0.25em] text-[#888888] font-semibold">
+                  <span className="material-symbols-outlined text-xs text-[#6B7280]">lock</span>
+                  <span className="text-[9px] uppercase tracking-[0.25em] text-[#6B7280] font-bold">
                     Curator & Admin Portal
                   </span>
-                  <span className="text-[9px] bg-[#222222] text-[#888888] px-1.5 py-0.5 border border-[#333333]">
+                  <span className="text-[9px] bg-white text-[#6B7280] px-1.5 py-0.5 border border-[#E2E8E5] rounded-xs">
                     Restricted Access
                   </span>
                 </div>
-                <p className="text-xs text-[#777777]">
-                  Curriculum authoring is reserved exclusively for <strong className="text-[#AAAAAA]">tauheedjahan07@gmail.com</strong>. Log in with your email ID & password or Google admin account.
+                <p className="text-xs text-[#6B7280]">
+                  Curriculum authoring is reserved exclusively for <strong className="text-[#111827]">tauheedjahan07@gmail.com</strong>. Log in with your email & password or Google admin account.
                 </p>
               </div>
               <button
                 onClick={onOpenAdmin}
-                className="bg-[#1C1C1C] hover:bg-[#282828] text-[#D4AF37] border border-[#444444] hover:border-[#D4AF37] px-4 py-2 font-sans text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                className="bg-white hover:bg-[#F3F4F6] text-[#1B4D3E] border border-[#CBD5E1] hover:border-[#1B4D3E] px-4 py-2 font-sans text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shrink-0 rounded-sm font-semibold"
               >
                 <span className="material-symbols-outlined text-xs">key</span>
                 Admin Login
@@ -284,17 +283,17 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         </section>
 
         {/* Demo & Curriculum Navigation Quick Switcher */}
-        <section className="bg-[#1A1A1A] border border-[#333333] p-6 md:p-8 shadow-[0px_8px_32px_rgba(0,0,0,0.5)] space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-[#2A2A2A]">
-            <h2 className="font-serif italic text-2xl font-light text-[#EFEFEF]">
+        <section className="bg-white border border-[#E2E8E5] p-6 md:p-8 shadow-xs space-y-4 rounded-sm">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E5E7EB]">
+            <h2 className="font-serif italic text-2xl font-medium text-[#111827]">
               Simulation Presets
             </h2>
-            <span className="text-[9px] uppercase tracking-[0.25em] bg-[#262010] text-[#D4AF37] px-2.5 py-0.5 border border-[#D4AF37]/30">
-              Prototype Vectors
+            <span className="text-[9px] uppercase tracking-[0.25em] bg-[#E8F2EE] text-[#1B4D3E] px-2.5 py-0.5 border border-[#1B4D3E]/30 font-bold rounded-xs">
+              Quick Vectors
             </span>
           </div>
-          <p className="text-xs text-[#AAAAAA]">
-            Instantaneously toggle between canonical syllabus states defined in the UX specification:
+          <p className="text-xs text-[#6B7280]">
+            Instantaneously toggle between canonical syllabus states:
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
@@ -303,15 +302,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 onSetDayState(1, false);
                 onNavigateHome();
               }}
-              className={`p-3.5 border text-left transition-all cursor-pointer ${
+              className={`p-3.5 border text-left transition-all cursor-pointer rounded-sm ${
                 currentDay === 1 && !day1Completed
-                  ? 'bg-[#262010] border-[#D4AF37] text-[#D4AF37]'
-                  : 'bg-[#111111] border-[#333333] hover:border-[#666666] text-[#CCCCCC]'
+                  ? 'bg-[#E8F2EE] border-[#1B4D3E] text-[#1B4D3E]'
+                  : 'bg-[#F8FAF9] border-[#E2E8E5] hover:border-[#1B4D3E]/40 text-[#4B5563]'
               }`}
             >
-              <span className="text-[9px] uppercase tracking-[0.25em] block opacity-70 mb-1">State 01</span>
-              <span className="text-sm font-serif italic text-[#EFEFEF] block">Day 01: Initiation</span>
-              <span className="text-xs text-[#888888] block mt-0.5">Fresh syllabus entry point</span>
+              <span className="text-[9px] uppercase tracking-[0.25em] block opacity-70 mb-1 font-semibold">State 01</span>
+              <span className="text-sm font-serif italic text-[#111827] block font-medium">Day 01: Initiation</span>
+              <span className="text-xs text-[#6B7280] block mt-0.5">Fresh syllabus entry point</span>
             </button>
 
             <button
@@ -319,15 +318,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 onSetDayState(1, true);
                 onNavigateHome();
               }}
-              className={`p-3.5 border text-left transition-all cursor-pointer ${
+              className={`p-3.5 border text-left transition-all cursor-pointer rounded-sm ${
                 currentDay === 1 && day1Completed
-                  ? 'bg-[#262010] border-[#D4AF37] text-[#D4AF37]'
-                  : 'bg-[#111111] border-[#333333] hover:border-[#666666] text-[#CCCCCC]'
+                  ? 'bg-[#E8F2EE] border-[#1B4D3E] text-[#1B4D3E]'
+                  : 'bg-[#F8FAF9] border-[#E2E8E5] hover:border-[#1B4D3E]/40 text-[#4B5563]'
               }`}
             >
-              <span className="text-[9px] uppercase tracking-[0.25em] block opacity-70 mb-1">State 02</span>
-              <span className="text-sm font-serif italic text-[#EFEFEF] block">Day 01: Evaluated</span>
-              <span className="text-xs text-[#888888] block mt-0.5">Score 78 & speaking feedback</span>
+              <span className="text-[9px] uppercase tracking-[0.25em] block opacity-70 mb-1 font-semibold">State 02</span>
+              <span className="text-sm font-serif italic text-[#111827] block font-medium">Day 01: Evaluated</span>
+              <span className="text-xs text-[#6B7280] block mt-0.5">Score & speaking feedback</span>
             </button>
 
             <button
@@ -335,15 +334,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                 onSetDayState(12, true);
                 onNavigateHome();
               }}
-              className={`p-3.5 border text-left transition-all cursor-pointer ${
+              className={`p-3.5 border text-left transition-all cursor-pointer rounded-sm ${
                 currentDay === 12
-                  ? 'bg-[#262010] border-[#D4AF37] text-[#D4AF37]'
-                  : 'bg-[#111111] border-[#333333] hover:border-[#666666] text-[#CCCCCC]'
+                  ? 'bg-[#E8F2EE] border-[#1B4D3E] text-[#1B4D3E]'
+                  : 'bg-[#F8FAF9] border-[#E2E8E5] hover:border-[#1B4D3E]/40 text-[#4B5563]'
               }`}
             >
-              <span className="text-[9px] uppercase tracking-[0.25em] block opacity-70 mb-1">State 03</span>
-              <span className="text-sm font-serif italic text-[#EFEFEF] block">Day 12: Longitudinal</span>
-              <span className="text-xs text-[#888888] block mt-0.5">Intermediate fluency milestone</span>
+              <span className="text-[9px] uppercase tracking-[0.25em] block opacity-70 mb-1 font-semibold">State 03</span>
+              <span className="text-sm font-serif italic text-[#111827] block font-medium">Day 12: Longitudinal</span>
+              <span className="text-xs text-[#6B7280] block mt-0.5">Intermediate fluency milestone</span>
             </button>
           </div>
         </section>
@@ -352,7 +351,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
         <div className="flex justify-end pt-2">
           <button
             onClick={handleSave}
-            className="bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] px-8 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-[0.25em] transition-all cursor-pointer shadow-[0px_4px_20px_rgba(212,175,55,0.25)]"
+            className="bg-[#1B4D3E] hover:bg-[#153E32] text-white px-8 py-3.5 font-sans text-[11px] font-semibold uppercase tracking-[0.25em] transition-all cursor-pointer shadow-xs rounded-sm"
           >
             Save Parameters
           </button>

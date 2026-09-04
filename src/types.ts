@@ -28,6 +28,7 @@ export interface DayRecord {
   topic: string;
   youtube_url: string;
   youtube_title?: string;
+  reading_heading?: string;
   story_content: string;
   pdf_url?: string;
   pdf_filename?: string;

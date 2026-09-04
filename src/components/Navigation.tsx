@@ -28,13 +28,13 @@ export const Navigation: React.FC<NavigationProps> = ({
     <>
       {/* Desktop TopAppBar */}
       {!isTaskFocusedScreen && (
-        <header className="docked full-width top-0 border-b border-[#333333] hidden md:flex justify-between items-center w-full px-8 lg:px-12 h-20 max-w-[1200px] mx-auto z-40 sticky bg-[#111111]/95 backdrop-blur-md">
+        <header className="docked full-width top-0 border-b border-[#E2E8E5] hidden md:flex justify-between items-center w-full px-8 lg:px-12 h-20 max-w-[1200px] mx-auto z-40 sticky bg-white/95 backdrop-blur-md">
           <div 
             onClick={() => onSelectTab('home')}
-            className="font-serif italic text-[24px] tracking-[0.1em] font-light text-[#EFEFEF] flex items-center gap-2 cursor-pointer select-none group"
+            className="font-serif italic text-[24px] tracking-[0.05em] font-medium text-[#111827] flex items-center gap-2.5 cursor-pointer select-none group"
           >
-            <span className="w-2.5 h-2.5 rounded-full border border-[#D4AF37] bg-[#D4AF37]/20 inline-block group-hover:bg-[#D4AF37] transition-all"></span>
-            90 Days English
+            <span className="w-3 h-3 rounded-full bg-[#1B4D3E] inline-block shadow-xs"></span>
+            <span>90 Days English</span>
           </div>
           
           <nav className="flex gap-8 lg:gap-10 items-center h-full">
@@ -42,8 +42,8 @@ export const Navigation: React.FC<NavigationProps> = ({
               onClick={() => onSelectTab('home')}
               className={`font-sans text-[11px] uppercase tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 ${
                 currentTab === 'home' && !['progress', 'ai_teacher', 'settings', 'admin'].includes(currentScreen)
-                  ? 'text-[#D4AF37] border-[#D4AF37] font-semibold'
-                  : 'text-[#888888] hover:text-[#EFEFEF] border-transparent font-normal'
+                  ? 'text-[#1B4D3E] border-[#1B4D3E] font-bold'
+                  : 'text-[#4B5563] hover:text-[#111827] border-transparent font-medium'
               }`}
             >
               Curriculum
@@ -52,8 +52,8 @@ export const Navigation: React.FC<NavigationProps> = ({
               onClick={() => onSelectTab('progress')}
               className={`font-sans text-[11px] uppercase tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 ${
                 currentTab === 'progress'
-                  ? 'text-[#D4AF37] border-[#D4AF37] font-semibold'
-                  : 'text-[#888888] hover:text-[#EFEFEF] border-transparent font-normal'
+                  ? 'text-[#1B4D3E] border-[#1B4D3E] font-bold'
+                  : 'text-[#4B5563] hover:text-[#111827] border-transparent font-medium'
               }`}
             >
               Progress
@@ -62,8 +62,8 @@ export const Navigation: React.FC<NavigationProps> = ({
               onClick={() => onSelectTab('ai_teacher')}
               className={`font-sans text-[11px] uppercase tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 ${
                 currentTab === 'ai_teacher'
-                  ? 'text-[#D4AF37] border-[#D4AF37] font-semibold'
-                  : 'text-[#888888] hover:text-[#EFEFEF] border-transparent font-normal'
+                  ? 'text-[#1B4D3E] border-[#1B4D3E] font-bold'
+                  : 'text-[#4B5563] hover:text-[#111827] border-transparent font-medium'
               }`}
             >
               AI Tutor
@@ -73,8 +73,8 @@ export const Navigation: React.FC<NavigationProps> = ({
                 onClick={onOpenAdmin}
                 className={`font-sans text-[11px] uppercase tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 ${
                   currentScreen === 'admin'
-                    ? 'text-[#D4AF37] border-[#D4AF37] font-semibold'
-                    : 'text-[#888888] hover:text-[#EFEFEF] border-transparent font-normal'
+                    ? 'text-[#1B4D3E] border-[#1B4D3E] font-bold'
+                    : 'text-[#4B5563] hover:text-[#111827] border-transparent font-medium'
                 }`}
               >
                 Admin Portal
@@ -84,8 +84,8 @@ export const Navigation: React.FC<NavigationProps> = ({
               onClick={() => onSelectTab('settings')}
               className={`font-sans text-[11px] uppercase tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 ${
                 currentTab === 'settings'
-                  ? 'text-[#D4AF37] border-[#D4AF37] font-semibold'
-                  : 'text-[#888888] hover:text-[#EFEFEF] border-transparent font-normal'
+                  ? 'text-[#1B4D3E] border-[#1B4D3E] font-bold'
+                  : 'text-[#4B5563] hover:text-[#111827] border-transparent font-medium'
               }`}
             >
               Settings
@@ -96,7 +96,7 @@ export const Navigation: React.FC<NavigationProps> = ({
           <div className="flex items-center gap-3">
             {user ? (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-[#181818] border border-[#333333] rounded-full">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-[#F8FAF9] border border-[#E2E8E5] rounded-full">
                   {user.avatar_url ? (
                     <img
                       src={user.avatar_url}
@@ -105,15 +105,15 @@ export const Navigation: React.FC<NavigationProps> = ({
                       referrerPolicy="no-referrer"
                     />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37] text-[#D4AF37] flex items-center justify-center text-[10px] font-semibold">
+                    <div className="w-6 h-6 rounded-full bg-[#E8F2EE] border border-[#1B4D3E]/30 text-[#1B4D3E] flex items-center justify-center text-[10px] font-bold">
                       {user.full_name.charAt(0)}
                     </div>
                   )}
-                  <span className="text-xs text-[#EFEFEF] max-w-[120px] truncate font-sans">
+                  <span className="text-xs text-[#111827] font-medium max-w-[120px] truncate font-sans">
                     {user.full_name}
                   </span>
                   {user.is_admin && (
-                    <span className="text-[9px] uppercase tracking-wider text-[#D4AF37] font-semibold bg-[#262010] px-1.5 py-0.5 rounded border border-[#D4AF37]/40">
+                    <span className="text-[9px] uppercase tracking-wider text-[#1B4D3E] font-bold bg-[#E8F2EE] px-2 py-0.5 rounded-xs border border-[#1B4D3E]/30">
                       Admin
                     </span>
                   )}
@@ -122,7 +122,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                 <button
                   onClick={onSignOut}
                   title="Sign out"
-                  className="text-[#888888] hover:text-[#E07A7A] transition-colors p-2 text-xs flex items-center gap-1 cursor-pointer"
+                  className="text-[#6B7280] hover:text-[#DC2626] transition-colors p-2 text-xs flex items-center gap-1 cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[18px]">logout</span>
                 </button>
@@ -131,9 +131,8 @@ export const Navigation: React.FC<NavigationProps> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={onLoginWithGoogle}
-                  className="bg-[#1A1A1A] hover:bg-[#252525] border border-[#444444] text-[#EFEFEF] hover:border-[#D4AF37] text-[11px] font-sans font-medium px-4 py-2 flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+                  className="bg-white hover:bg-[#F9FAFB] border border-[#D1D5DB] text-[#111827] hover:border-[#1B4D3E] text-[11px] font-sans font-medium px-4 py-2 flex items-center gap-2 transition-all cursor-pointer shadow-xs rounded-sm"
                 >
-                  {/* Google SVG G-Icon */}
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24">
                     <path
                       fill="#EA4335"
@@ -152,7 +151,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                       d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.3L1.9 16.4C3.7 20.2 7.5 23.5 12 23.5z"
                     />
                   </svg>
-                  <span>Sign in with Google</span>
+                  <span>Sign in</span>
                 </button>
               </div>
             )}
@@ -162,14 +161,14 @@ export const Navigation: React.FC<NavigationProps> = ({
 
       {/* Bottom Navigation for Mobile */}
       {!isTaskFocusedScreen && (
-        <nav className="fixed md:hidden bottom-0 left-0 w-full z-50 flex justify-around items-center px-3 pb-[env(safe-area-inset-bottom,12px)] pt-2 h-16 bg-[#141414] border-t border-[#333333]">
+        <nav className="fixed md:hidden bottom-0 left-0 w-full z-50 flex justify-around items-center px-3 pb-[env(safe-area-inset-bottom,12px)] pt-2 h-16 bg-white border-t border-[#E2E8E5] shadow-lg">
           <button
             onClick={() => onSelectTab('home')}
             aria-label="Home"
-            className={`flex flex-col items-center justify-center rounded-lg px-3 py-1 transition-all ${
+            className={`flex flex-col items-center justify-center rounded-sm px-3 py-1 transition-all ${
               currentTab === 'home' && !['progress', 'ai_teacher', 'settings', 'admin'].includes(currentScreen)
-                ? 'bg-[#262010] text-[#D4AF37] border border-[#D4AF37]/30'
-                : 'text-[#888888] hover:text-[#EFEFEF]'
+                ? 'bg-[#E8F2EE] text-[#1B4D3E] font-bold'
+                : 'text-[#6B7280] hover:text-[#111827]'
             }`}
           >
             <span className={`material-symbols-outlined text-[20px] ${currentTab === 'home' ? 'icon-filled' : ''}`}>
@@ -181,10 +180,10 @@ export const Navigation: React.FC<NavigationProps> = ({
           <button
             onClick={() => onSelectTab('progress')}
             aria-label="Progress"
-            className={`flex flex-col items-center justify-center rounded-lg px-3 py-1 transition-all ${
+            className={`flex flex-col items-center justify-center rounded-sm px-3 py-1 transition-all ${
               currentTab === 'progress'
-                ? 'bg-[#262010] text-[#D4AF37] border border-[#D4AF37]/30'
-                : 'text-[#888888] hover:text-[#EFEFEF]'
+                ? 'bg-[#E8F2EE] text-[#1B4D3E] font-bold'
+                : 'text-[#6B7280] hover:text-[#111827]'
             }`}
           >
             <span className={`material-symbols-outlined text-[20px] ${currentTab === 'progress' ? 'icon-filled' : ''}`}>
@@ -196,10 +195,10 @@ export const Navigation: React.FC<NavigationProps> = ({
           <button
             onClick={() => onSelectTab('ai_teacher')}
             aria-label="AI Teacher"
-            className={`flex flex-col items-center justify-center rounded-lg px-3 py-1 transition-all ${
+            className={`flex flex-col items-center justify-center rounded-sm px-3 py-1 transition-all ${
               currentTab === 'ai_teacher'
-                ? 'bg-[#262010] text-[#D4AF37] border border-[#D4AF37]/30'
-                : 'text-[#888888] hover:text-[#EFEFEF]'
+                ? 'bg-[#E8F2EE] text-[#1B4D3E] font-bold'
+                : 'text-[#6B7280] hover:text-[#111827]'
             }`}
           >
             <span className={`material-symbols-outlined text-[20px] ${currentTab === 'ai_teacher' ? 'icon-filled' : ''}`}>
@@ -212,10 +211,10 @@ export const Navigation: React.FC<NavigationProps> = ({
             <button
               onClick={onOpenAdmin}
               aria-label="Admin"
-              className={`flex flex-col items-center justify-center rounded-lg px-3 py-1 transition-all ${
+              className={`flex flex-col items-center justify-center rounded-sm px-3 py-1 transition-all ${
                 currentScreen === 'admin'
-                  ? 'bg-[#262010] text-[#D4AF37] border border-[#D4AF37]/30'
-                  : 'text-[#888888] hover:text-[#EFEFEF]'
+                  ? 'bg-[#E8F2EE] text-[#1B4D3E] font-bold'
+                  : 'text-[#6B7280] hover:text-[#111827]'
               }`}
             >
               <span className={`material-symbols-outlined text-[20px] ${currentScreen === 'admin' ? 'icon-filled' : ''}`}>
@@ -228,10 +227,10 @@ export const Navigation: React.FC<NavigationProps> = ({
           <button
             onClick={() => onSelectTab('settings')}
             aria-label="Settings"
-            className={`flex flex-col items-center justify-center rounded-lg px-3 py-1 transition-all ${
+            className={`flex flex-col items-center justify-center rounded-sm px-3 py-1 transition-all ${
               currentTab === 'settings'
-                ? 'bg-[#262010] text-[#D4AF37] border border-[#D4AF37]/30'
-                : 'text-[#888888] hover:text-[#EFEFEF]'
+                ? 'bg-[#E8F2EE] text-[#1B4D3E] font-bold'
+                : 'text-[#6B7280] hover:text-[#111827]'
             }`}
           >
             <span className={`material-symbols-outlined text-[20px] ${currentTab === 'settings' ? 'icon-filled' : ''}`}>
@@ -244,4 +243,3 @@ export const Navigation: React.FC<NavigationProps> = ({
     </>
   );
 };
-

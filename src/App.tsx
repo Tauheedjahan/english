@@ -21,6 +21,7 @@ import { ProgressScreen } from './components/ProgressScreen';
 import { AITeacherScreen } from './components/AITeacherScreen';
 import { SettingsScreen } from './components/SettingsScreen';
 import { AdminPortalScreen } from './components/AdminPortalScreen';
+import { StepRestrictionModal } from './components/StepRestrictionModal';
 import {
   getCurrentUser,
   signInWithGoogle,
@@ -49,6 +50,14 @@ export function App() {
   const [userScore, setUserScore] = useState<number>(94);
   const [completedSentenceIds, setCompletedSentenceIds] = useState<number[]>([]);
   const [lessonSteps, setLessonSteps] = useState<LessonStep[]>(INITIAL_LESSON_STEPS);
+  const [globalRestrictionModal, setGlobalRestrictionModal] = useState<{
+    isOpen: boolean;
+    targetStepTitle: string;
+    requiredStepTitle: string;
+    requiredStepNumber: number;
+    message?: string;
+    onGoToRequired: () => void;
+  } | null>(null);
 
   // Active Day Record
   const activeDay = publishedDays.find((d) => d.day_number === currentDay) || publishedDays[0] || SEED_DAYS[0];
@@ -167,6 +176,43 @@ export function App() {
   };
 
   const handleSelectTab = (tab: TabType) => {
+    if (tab === 'ai_teacher') {
+      const isStep3Completed = lessonSteps.find((s) => s.id === 3)?.completed;
+      if (!isStep3Completed) {
+        const isStep1Done = lessonSteps.find((s) => s.id === 1)?.completed;
+        const isStep2Done = lessonSteps.find((s) => s.id === 2)?.completed;
+
+        let reqNum = 1;
+        let reqTitle = 'Video Listening';
+        let reqScreen: ScreenView = 'listening_practice';
+        let msg = 'You cannot enter the AI Tutor yet. Please watch and complete the video listening session first.';
+
+        if (isStep1Done && !isStep2Done) {
+          reqNum = 2;
+          reqTitle = 'Companion Reading Guide';
+          reqScreen = 'reading';
+          msg = 'Please complete the companion reading guide before proceeding to the AI Tutor.';
+        } else if (isStep1Done && isStep2Done) {
+          reqNum = 3;
+          reqTitle = 'Sentence Translation Mastery';
+          reqScreen = 'translation';
+          msg = `Please complete all translation sentences (${completedSentenceIds.length}/${currentSentences.length || 30} completed) before entering the AI Tutor.`;
+        }
+
+        setGlobalRestrictionModal({
+          isOpen: true,
+          targetStepTitle: 'Step 04: Oral AI Dialogue',
+          requiredStepTitle: reqTitle,
+          requiredStepNumber: reqNum,
+          message: msg,
+          onGoToRequired: () => {
+            setGlobalRestrictionModal(null);
+            setCurrentScreen(reqScreen);
+          },
+        });
+        return;
+      }
+    }
     setCurrentTab(tab);
     setCurrentScreen(tab);
   };
@@ -356,23 +402,28 @@ export function App() {
     }
   };
 
+  const isListeningDone = lessonSteps.find((s) => s.id === 1)?.completed || false;
+  const isReadingDone = lessonSteps.find((s) => s.id === 2)?.completed || false;
+  const isTranslationDone = completedSentenceIds.length >= (currentSentences.length || 30) || (lessonSteps.find((s) => s.id === 3)?.completed || false);
+  const isAIDone = day1Completed || (lessonSteps.find((s) => s.id === 4)?.completed || false);
+
   const dayProgress: DayProgress = {
     dayNumber: currentDay,
     topic: activeDay.topic,
     youtubeUrl: activeDay.youtube_url,
     pdfTitle: activeDay.pdf_filename || `${activeDay.topic} Companion Guide`,
     pdfDownloadUrl: activeDay.pdf_url,
-    listeningCompleted: lessonSteps[0]?.completed || false,
-    readingCompleted: lessonSteps[1]?.completed || false,
-    translationCompleted: completedSentenceIds.length >= (currentSentences.length || 41),
-    aiConversationCompleted: day1Completed,
+    listeningCompleted: isListeningDone,
+    readingCompleted: isReadingDone,
+    translationCompleted: isTranslationDone,
+    aiConversationCompleted: isAIDone,
     dayCompleted: day1Completed,
     completedSentenceIds,
     score: userScore,
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#111111] text-[#EFEFEF] font-sans antialiased selection:bg-[#D4AF37] selection:text-[#111111]">
+    <div className="min-h-screen flex flex-col bg-white text-[#111827] font-sans antialiased selection:bg-[#1B4D3E] selection:text-white">
       {/* Navigation (TopAppBar on desktop, BottomNavBar on mobile) */}
       <Navigation
         currentTab={currentTab}
@@ -389,6 +440,9 @@ export function App() {
       <div className="flex-grow flex flex-col pb-20 md:pb-6">
         {currentScreen === 'home' && (
           <HomeScreen
+            dayNumber={currentDay}
+            topic={activeDay.topic}
+            activeDay={activeDay}
             day1Completed={day1Completed}
             dayProgress={dayProgress}
             score={userScore}
@@ -399,8 +453,18 @@ export function App() {
 
         {currentScreen === 'lesson_stepper' && (
           <LessonStepperScreen
-            steps={lessonSteps}
+            dayNumber={currentDay}
+            topic={activeDay.topic}
+            listeningHeading={activeDay.youtube_title}
+            readingHeading={activeDay.reading_heading}
+            pdfFilename={activeDay.pdf_filename}
+            steps={lessonSteps.map((s) => {
+              if (s.id === 1 && activeDay.youtube_title) return { ...s, title: activeDay.youtube_title };
+              if (s.id === 2 && activeDay.reading_heading) return { ...s, title: activeDay.reading_heading };
+              return s;
+            })}
             completedSentenceCount={completedSentenceIds.length}
+            totalSentencesCount={currentSentences.length || 30}
             onOpenListeningPractice={() => setCurrentScreen('listening_practice')}
             onOpenReadingPractice={() => setCurrentScreen('reading')}
             onOpenTranslationPractice={() => setCurrentScreen('translation')}
@@ -411,6 +475,9 @@ export function App() {
 
         {currentScreen === 'listening_practice' && (
           <ListeningPracticeScreen
+            dayNumber={currentDay}
+            topic={activeDay.topic}
+            listeningTitle={activeDay.youtube_title}
             youtubeUrl={activeDay.youtube_url}
             onUpdateYoutubeUrl={(url) => {
               // Update state
@@ -420,6 +487,12 @@ export function App() {
             }}
             onBackToLessons={() => setCurrentScreen('lesson_stepper')}
             onFinishListening={handleFinishListening}
+            onOpenReadingPractice={() => setCurrentScreen('reading')}
+            onOpenTranslationPractice={() => setCurrentScreen('translation')}
+            onOpenAIConversation={() => setCurrentScreen('ai_teacher')}
+            isReadingUnlocked={isListeningDone}
+            isTranslationUnlocked={isReadingDone}
+            isAIUnlocked={isTranslationDone}
           />
         )}
 
@@ -427,23 +500,38 @@ export function App() {
           <ReadingScreen
             dayNumber={currentDay}
             topic={activeDay.topic}
+            readingHeading={activeDay.reading_heading}
             storyContent={activeDay.story_content}
             pdfUrl={activeDay.pdf_url}
             pdfFilename={activeDay.pdf_filename}
             onBack={() => setCurrentScreen('lesson_stepper')}
             onFinishReading={handleFinishReading}
+            onOpenListeningPractice={() => setCurrentScreen('listening_practice')}
+            onOpenTranslationPractice={() => setCurrentScreen('translation')}
+            onOpenAIConversation={() => setCurrentScreen('ai_teacher')}
+            isListeningDone={isListeningDone}
+            isTranslationUnlocked={isReadingDone}
+            isAIUnlocked={isTranslationDone}
           />
         )}
 
         {currentScreen === 'translation' && (
           <TranslationScreen
             dayNumber={currentDay}
+            topic={activeDay.topic}
+            storyContent={activeDay.story_content}
             sentences={currentSentences}
             completedSentenceIds={completedSentenceIds}
             onSentenceCompleted={handleSentenceCompleted}
             onCompleteAllForDemo={handleCompleteAllForDemo}
             onFinishTranslation={handleFinishTranslation}
             onBackToLessons={() => setCurrentScreen('lesson_stepper')}
+            onOpenListeningPractice={() => setCurrentScreen('listening_practice')}
+            onOpenReadingPractice={() => setCurrentScreen('reading')}
+            onOpenAIConversation={() => setCurrentScreen('ai_teacher')}
+            isListeningDone={isListeningDone}
+            isReadingDone={isReadingDone}
+            isAIDone={isAIDone}
           />
         )}
 
@@ -472,6 +560,9 @@ export function App() {
             lessonContext={activeDay.lesson_context}
             onCompleteDay1={handleCompleteDay}
             onBackToLessons={() => setCurrentScreen('lesson_stepper')}
+            onOpenListeningPractice={() => setCurrentScreen('listening_practice')}
+            onOpenReadingPractice={() => setCurrentScreen('reading')}
+            onOpenTranslationPractice={() => setCurrentScreen('translation')}
           />
         )}
 
@@ -508,6 +599,19 @@ export function App() {
           />
         )}
       </div>
+
+      {/* Global Step Restriction Pop-Up */}
+      {globalRestrictionModal && (
+        <StepRestrictionModal
+          isOpen={globalRestrictionModal.isOpen}
+          targetStepTitle={globalRestrictionModal.targetStepTitle}
+          requiredStepTitle={globalRestrictionModal.requiredStepTitle}
+          requiredStepNumber={globalRestrictionModal.requiredStepNumber}
+          message={globalRestrictionModal.message}
+          onClose={() => setGlobalRestrictionModal(null)}
+          onGoToRequired={globalRestrictionModal.onGoToRequired}
+        />
+      )}
     </div>
   );
 }

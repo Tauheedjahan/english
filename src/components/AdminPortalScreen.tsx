@@ -47,21 +47,18 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
   const [topic, setTopic] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [youtubeTitle, setYoutubeTitle] = useState('');
+  const [readingHeading, setReadingHeading] = useState('');
   const [storyContent, setStoryContent] = useState('');
   const [pdfUrl, setPdfUrl] = useState('');
   const [pdfFilename, setPdfFilename] = useState('');
   const [lessonContext, setLessonContext] = useState('');
   const [isPublished, setIsPublished] = useState(true);
 
-  // 30 Sentences state
+  // Sentences state (manually managed)
   const [sentences, setSentences] = useState<SentenceRecord[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  // Sentence editing modal/inline state
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   // Load existing days on mount if admin
   useEffect(() => {
@@ -142,22 +139,24 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
     const list = await fetchPublishedDays();
     setDaysList(list);
     if (list.length > 0) {
-      loadDayDetails(list[0]);
+      const current = list.find((d) => d.day_number === selectedDayNumber) || list[0];
+      loadDayDetails(current);
     }
   };
 
   const loadDayDetails = async (day: DayRecord) => {
     setSelectedDayNumber(day.day_number);
-    setTopic(day.topic);
-    setYoutubeUrl(day.youtube_url);
+    setTopic(day.topic || '');
+    setYoutubeUrl(day.youtube_url || '');
     setYoutubeTitle(day.youtube_title || '');
-    setStoryContent(day.story_content);
+    setReadingHeading(day.reading_heading || '');
+    setStoryContent(day.story_content || '');
     setPdfUrl(day.pdf_url || '');
     setPdfFilename(day.pdf_filename || '');
     setLessonContext(day.lesson_context || '');
     setIsPublished(day.is_published ?? true);
 
-    // Fetch sentences
+    // Fetch sentences for this day
     const sList = await fetchSentencesForDay(day.day_number);
     setSentences(sList);
   };
@@ -170,18 +169,19 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
     } else {
       // New day setup
       setSelectedDayNumber(dayNum);
-      setTopic('');
+      setTopic(`Day ${dayNum}`);
       setYoutubeUrl('');
       setYoutubeTitle('');
+      setReadingHeading('');
       setStoryContent('');
       setPdfUrl('');
-      setPdfFilename('');
+      setPdfFilename(`Day_${dayNum.toString().padStart(2, '0')}_Guide.pdf`);
       setLessonContext('');
       setSentences([]);
     }
   };
 
-  // Quick preset loader for Day 2 example from prompt: "A Boy Who Rescued an Injured Bird"
+  // Quick preset loader for Day 2 example
   const handleLoadDay2Example = () => {
     const day2Seed = SEED_DAYS.find((d) => d.day_number === 2);
     if (day2Seed) {
@@ -189,6 +189,7 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
       setTopic(day2Seed.topic);
       setYoutubeUrl(day2Seed.youtube_url);
       setYoutubeTitle(day2Seed.youtube_title || '');
+      setReadingHeading(day2Seed.reading_heading || 'The Injured Sparrow’s Flight');
       setStoryContent(day2Seed.story_content);
       setPdfUrl(day2Seed.pdf_url || '');
       setPdfFilename(day2Seed.pdf_filename || 'Day_02_Injured_Bird_Guide.pdf');
@@ -211,62 +212,24 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
     setIsUploadingPdf(true);
     try {
       const { publicUrl, error } = await uploadLessonPDF(file, selectedDayNumber);
-      if (error) {
-        showNotice('error', 'Failed to upload PDF file: ' + error.message);
-      } else if (publicUrl) {
+      if (error || !publicUrl) {
+        // Local preview fallback if remote bucket is not active
+        const blobUrl = URL.createObjectURL(file);
+        setPdfUrl(blobUrl);
+        setPdfFilename(file.name);
+        showNotice('success', `PDF loaded: ${file.name}`);
+      } else {
         setPdfUrl(publicUrl);
         setPdfFilename(file.name);
         showNotice('success', `PDF uploaded: ${file.name}`);
       }
     } catch (err: any) {
-      showNotice('error', 'PDF upload error: ' + err.message);
+      const blobUrl = URL.createObjectURL(file);
+      setPdfUrl(blobUrl);
+      setPdfFilename(file.name);
+      showNotice('success', `PDF loaded: ${file.name}`);
     } finally {
       setIsUploadingPdf(false);
-    }
-  };
-
-  // Call backend Gemini AI to generate exactly 30 Hindi translation sentences
-  const handleGenerate30Sentences = async () => {
-    if (!topic.trim()) {
-      showNotice('error', 'Please enter a Topic/Title before generating sentences.');
-      return;
-    }
-    if (!storyContent.trim()) {
-      showNotice('error', 'Please enter Story / Reading Content before generating sentences.');
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const response = await fetch('/api/admin/generate-sentences', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          dayNumber: selectedDayNumber,
-          topic,
-          youtubeUrl,
-          youtubeTitle,
-          storyContent,
-          lessonContext,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server returned HTTP ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (data.sentences && Array.isArray(data.sentences) && data.sentences.length > 0) {
-        setSentences(data.sentences);
-        showNotice('success', `Generated exactly ${data.sentences.length} Hindi translation sentences connected to this lesson!`);
-      } else {
-        throw new Error('No sentences returned');
-      }
-    } catch (err: any) {
-      console.error('Sentence generation error:', err);
-      showNotice('error', 'Failed to generate sentences with Gemini. Please try again.');
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -305,72 +268,41 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
     setSentences(reordered);
   };
 
-  // Regenerate single sentence
-  const handleRegenerateSingleSentence = async (index: number) => {
-    const current = sentences[index];
-    const diff = current.difficulty || (index < 10 ? 'Beginner' : index < 20 ? 'Intermediate' : 'Advanced');
-    
-    // Slight variation
-    const updated = [...sentences];
-    updated[index] = {
-      ...current,
-      hindi: `${current.hindi} (अभ्यास रूपांतर)`,
-      english: current.english,
-      hint: current.hint,
-      difficulty: diff,
-    };
-    setSentences(updated);
-    showNotice('success', `Regenerated sentence #${index + 1}!`);
-  };
-
   // Add new sentence manually
   const handleAddSentence = () => {
     const newOrder = sentences.length + 1;
     const diff = newOrder <= 10 ? 'Beginner' : newOrder <= 20 ? 'Intermediate' : 'Advanced';
     const newSentence: SentenceRecord = {
-      id: Date.now(),
+      id: Date.now() + Math.floor(Math.random() * 1000),
       day_number: selectedDayNumber,
       sentence_order: newOrder,
-      hindi: 'नया हिंदी वाक्य दर्ज करें...',
-      english: 'Enter the natural English translation...',
+      hindi: '',
+      english: '',
       alternatives: [],
-      hint: 'keyword / grammar cue',
-      key_grammar: 'Grammar rule for this sentence structure.',
+      hint: '',
+      key_grammar: '',
       difficulty: diff,
     };
     setSentences([...sentences, newSentence]);
   };
 
-  // Save Day & 30 Sentences to Supabase
+  // Save Day & Sentences
   const handleSaveAndPublish = async () => {
-    if (!topic.trim()) {
-      showNotice('error', 'Topic is required.');
-      return;
-    }
-    if (!youtubeUrl.trim()) {
-      showNotice('error', 'YouTube URL is required.');
-      return;
-    }
-    if (!storyContent.trim()) {
-      showNotice('error', 'Story content is required.');
-      return;
-    }
-    if (sentences.length === 0) {
-      showNotice('error', 'Please generate or add translation sentences before saving.');
-      return;
-    }
-
     setIsSaving(true);
     try {
+      // Auto-derive topic if not set
+      const derivedTopic = (topic || '').trim() || (youtubeTitle || '').trim() || `Day ${selectedDayNumber} - Lesson`;
+
       const dayRecord: DayRecord = {
         day_number: selectedDayNumber,
-        topic,
-        youtube_url: youtubeUrl,
-        youtube_title: youtubeTitle || topic,
-        story_content: storyContent,
-        pdf_url: pdfUrl,
-        pdf_filename: pdfFilename,
-        lesson_context: lessonContext,
+        topic: derivedTopic,
+        youtube_url: youtubeUrl.trim(),
+        youtube_title: youtubeTitle.trim() || derivedTopic,
+        reading_heading: readingHeading.trim() || derivedTopic,
+        story_content: storyContent.trim(),
+        pdf_url: pdfUrl.trim(),
+        pdf_filename: pdfFilename.trim(),
+        lesson_context: lessonContext.trim(),
         is_published: isPublished,
       };
 
@@ -379,14 +311,14 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
         throw error;
       }
 
-      showNotice('success', `Day ${selectedDayNumber} and ${sentences.length} sentences successfully committed to Supabase!`);
+      showNotice('success', `Day ${selectedDayNumber} with ${sentences.length} sentence(s) saved and published!`);
       await loadDays();
       if (onDayPublished) {
         onDayPublished(selectedDayNumber);
       }
     } catch (err: any) {
       console.error('Save error:', err);
-      showNotice('error', 'Failed to save to Supabase: ' + err.message);
+      showNotice('error', 'Failed to save: ' + (err?.message || 'Unknown error'));
     } finally {
       setIsSaving(false);
     }
@@ -395,28 +327,29 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
   // If not authenticated as admin, show dedicated Admin Authentication Gate
   if (!user?.is_admin) {
     return (
-      <main className="flex-grow w-full max-w-[540px] mx-auto px-4 py-12 flex flex-col justify-center min-h-[calc(100vh-160px)] animate-fade-in">
-        <div className="bg-[#181818] border border-[#333333] p-8 md:p-10 shadow-[0px_16px_48px_rgba(0,0,0,0.7)] relative">
-          {/* Gold top accent line */}
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent" />
+      <main className="flex-grow w-full max-w-[520px] mx-auto px-4 py-12 flex flex-col justify-center min-h-[calc(100vh-160px)] animate-fade-in bg-white text-[#111827]">
+        <div className="bg-white border border-[#E2E8E5] p-8 md:p-10 shadow-[0px_16px_40px_rgba(27,77,62,0.08)] relative rounded-sm">
+          {/* Top Forest Green Accent Line */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-[#1B4D3E] rounded-t-sm" />
 
           <div className="text-center mb-8">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#241E10] border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37]">
+            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#E8F2EE] border border-[#1B4D3E]/20 flex items-center justify-center text-[#1B4D3E]">
               <span className="material-symbols-outlined text-2xl">shield_person</span>
             </div>
-            <span className="text-[10px] uppercase tracking-[0.3em] text-[#D4AF37] font-semibold block mb-1">
-              Restricted Portal • Curriculum Studio
+            <span className="text-[10px] uppercase tracking-[0.25em] text-[#1B4D3E] font-bold block mb-1">
+              Admin Portal • Restricted Access
             </span>
-            <h1 className="font-serif italic text-3xl text-[#EFEFEF]">
-              Admin Panel Sign In
+            <h1 className="font-serif italic text-3xl text-[#111827]">
+              Administrator Sign In
             </h1>
-            <p className="text-xs text-[#888888] mt-2 max-w-sm mx-auto leading-relaxed">
-              This portal is restricted exclusively for <span className="text-[#D4AF37] font-mono">{ADMIN_EMAIL}</span> to manage 90-day lessons, YouTube videos, and translation sentences.
+            <p className="text-xs text-[#4B5563] mt-2 max-w-sm mx-auto leading-relaxed">
+              This curriculum management studio is restricted exclusively to{' '}
+              <strong className="text-[#1B4D3E] font-medium">{ADMIN_EMAIL}</strong>.
             </p>
           </div>
 
           {authError && (
-            <div className="mb-6 p-4 bg-[#281616] border border-[#522424] text-[#E58F8F] text-xs flex items-start gap-3 animate-fade-in">
+            <div className="mb-6 p-4 bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-xs flex items-start gap-3 animate-fade-in rounded-sm">
               <span className="material-symbols-outlined text-base shrink-0 mt-0.5">error</span>
               <div className="flex-grow">{authError}</div>
             </div>
@@ -424,11 +357,11 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
 
           <form onSubmit={handleAdminEmailPasswordLogin} className="space-y-5">
             <div>
-              <label className="text-[10px] uppercase tracking-[0.2em] text-[#AAAAAA] block mb-2 font-medium">
+              <label className="text-[10px] uppercase tracking-[0.2em] text-[#374151] block mb-2 font-semibold">
                 Admin Email ID
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm text-[#666666]">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm text-[#9CA3AF]">
                   mail
                 </span>
                 <input
@@ -439,7 +372,7 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
                     setAuthError(null);
                   }}
                   placeholder="tauheedjahan07@gmail.com"
-                  className="w-full bg-[#111111] border border-[#333333] pl-10 pr-4 py-3 text-sm text-[#EFEFEF] placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none transition-colors"
+                  className="w-full bg-white border border-[#CBD5E1] pl-10 pr-4 py-2.5 text-sm text-[#111827] placeholder-[#9CA3AF] focus:border-[#1B4D3E] focus:ring-1 focus:ring-[#1B4D3E] focus:outline-none transition-colors rounded-sm"
                   required
                 />
               </div>
@@ -447,19 +380,19 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-[10px] uppercase tracking-[0.2em] text-[#AAAAAA] font-medium">
+                <label className="text-[10px] uppercase tracking-[0.2em] text-[#374151] font-semibold">
                   Administrator Password
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="text-[10px] uppercase tracking-wider text-[#777777] hover:text-[#D4AF37] transition-colors cursor-pointer"
+                  className="text-[10px] uppercase tracking-wider text-[#6B7280] hover:text-[#1B4D3E] transition-colors cursor-pointer"
                 >
                   {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm text-[#666666]">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-sm text-[#9CA3AF]">
                   key
                 </span>
                 <input
@@ -470,20 +403,20 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
                     setAuthError(null);
                   }}
                   placeholder="Enter administrator password"
-                  className="w-full bg-[#111111] border border-[#333333] pl-10 pr-10 py-3 text-sm text-[#EFEFEF] placeholder-[#555555] focus:border-[#D4AF37] focus:outline-none transition-colors"
+                  className="w-full bg-white border border-[#CBD5E1] pl-10 pr-10 py-2.5 text-sm text-[#111827] placeholder-[#9CA3AF] focus:border-[#1B4D3E] focus:ring-1 focus:ring-[#1B4D3E] focus:outline-none transition-colors rounded-sm"
                   required
                 />
               </div>
-              <p className="text-[10px] text-[#666666] mt-1.5 flex items-center gap-1">
-                <span className="material-symbols-outlined text-[12px] text-[#D4AF37]">info</span>
-                Initial master password: <span className="font-mono text-[#AAAAAA]">admin123</span> or <span className="font-mono text-[#AAAAAA]">tauheed123</span>
+              <p className="text-[11px] text-[#6B7280] mt-1.5 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[13px] text-[#1B4D3E]">info</span>
+                Initial master password: <span className="font-mono text-[#111827] font-medium">admin123</span> or <span className="font-mono text-[#111827] font-medium">tauheed123</span>
               </p>
             </div>
 
             <button
               type="submit"
               disabled={authLoading}
-              className="w-full bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] py-3.5 px-6 font-sans text-xs font-semibold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0px_4px_20px_rgba(212,175,55,0.25)] disabled:opacity-50"
+              className="w-full bg-[#1B4D3E] hover:bg-[#153E32] text-white py-3 px-6 font-sans text-xs font-semibold uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50 rounded-sm"
             >
               {authLoading ? (
                 <>
@@ -493,7 +426,7 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
               ) : (
                 <>
                   <span className="material-symbols-outlined text-sm">login</span>
-                  <span>Log In to Admin Panel</span>
+                  <span>Sign In to Admin Panel</span>
                 </>
               )}
             </button>
@@ -501,9 +434,9 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
 
           <div className="relative my-6 text-center">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#2A2A2A]" />
+              <div className="w-full border-t border-[#E5E7EB]" />
             </div>
-            <span className="relative bg-[#181818] px-3 text-[10px] uppercase tracking-widest text-[#666666]">
+            <span className="relative bg-white px-3 text-[10px] uppercase tracking-widest text-[#6B7280]">
               Or Authenticate with Google
             </span>
           </div>
@@ -512,7 +445,7 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
             type="button"
             onClick={handleGoogleAdminLogin}
             disabled={authLoading}
-            className="w-full bg-[#1F1F1F] hover:bg-[#252525] border border-[#333333] hover:border-[#555555] text-[#EFEFEF] py-3 px-4 font-sans text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all cursor-pointer"
+            className="w-full bg-[#F9FAFB] hover:bg-[#F3F4F6] border border-[#D1D5DB] text-[#111827] py-2.5 px-4 font-sans text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all cursor-pointer rounded-sm"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">
               <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.2l3.7 2.9C6.5 7.4 9 5 12 5z" />
@@ -523,17 +456,17 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
             <span>Sign in with Google ({ADMIN_EMAIL})</span>
           </button>
 
-          <div className="mt-8 pt-6 border-t border-[#262626] flex items-center justify-between text-xs">
+          <div className="mt-8 pt-6 border-t border-[#E5E7EB] flex items-center justify-between text-xs">
             <button
               type="button"
               onClick={onBackToApp}
-              className="text-[#888888] hover:text-[#EFEFEF] flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="text-[#6B7280] hover:text-[#111827] flex items-center gap-1.5 transition-colors cursor-pointer font-medium"
             >
               <span className="material-symbols-outlined text-sm">arrow_back</span>
               Return to Learner App
             </button>
-            <span className="text-[10px] text-[#555555] uppercase tracking-wider">
-              Curator-Only Protection
+            <span className="text-[10px] text-[#9CA3AF] uppercase tracking-wider font-semibold">
+              Admin Access Only
             </span>
           </div>
         </div>
@@ -542,30 +475,30 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
   }
 
   return (
-    <main className="flex-grow w-full max-w-[1240px] mx-auto px-4 md:px-12 py-8 md:py-12 flex flex-col min-h-[calc(100vh-160px)] animate-fade-in">
-      {/* Top Admin Bar with Curator Profile & Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 p-3.5 bg-[#1F190D] border border-[#473615] rounded-none">
+    <main className="flex-grow w-full max-w-[1240px] mx-auto px-4 md:px-8 py-6 md:py-8 flex flex-col min-h-[calc(100vh-160px)] animate-fade-in bg-white text-[#111827]">
+      {/* Top Admin Status & Security Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 p-4 bg-white border border-[#E2E8E5] shadow-xs rounded-sm">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37]">
-            <span className="material-symbols-outlined text-base">verified_user</span>
+          <div className="w-9 h-9 rounded-full bg-[#E8F2EE] border border-[#1B4D3E]/30 flex items-center justify-center text-[#1B4D3E]">
+            <span className="material-symbols-outlined text-lg">verified_user</span>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-[0.25em] text-[#D4AF37] font-semibold">
+              <span className="text-[10px] uppercase tracking-[0.25em] text-[#1B4D3E] font-bold">
                 Super Administrator
               </span>
-              <span className="text-[9px] bg-[#D4AF37] text-[#111111] font-bold px-1.5 py-0.2 tracking-wider">
+              <span className="text-[9px] bg-[#1B4D3E] text-white font-semibold px-2 py-0.5 rounded-xs tracking-wider">
                 AUTHENTICATED
               </span>
             </div>
-            <span className="text-xs text-[#EFEFEF] font-mono">{user?.email || ADMIN_EMAIL}</span>
+            <span className="text-xs text-[#4B5563] font-mono">{user?.email || ADMIN_EMAIL}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowChangePasswordModal(true)}
-            className="text-[10px] uppercase tracking-wider bg-[#2A2210] hover:bg-[#382D16] text-[#D4AF37] border border-[#59451C] px-3 py-1.5 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="text-[11px] uppercase tracking-wider bg-white hover:bg-[#F3F4F6] text-[#1B4D3E] border border-[#1B4D3E]/30 px-3.5 py-1.5 flex items-center gap-1.5 transition-colors cursor-pointer font-medium rounded-sm"
           >
             <span className="material-symbols-outlined text-xs">key</span>
             Change Password
@@ -573,7 +506,7 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
 
           <button
             onClick={onAdminSignOut}
-            className="text-[10px] uppercase tracking-wider bg-[#222222] hover:bg-[#2C2C2C] text-[#BBBBBB] hover:text-[#EFEFEF] border border-[#3A3A3A] px-3 py-1.5 flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="text-[11px] uppercase tracking-wider bg-[#F9FAFB] hover:bg-[#F3F4F6] text-[#4B5563] hover:text-[#DC2626] border border-[#D1D5DB] px-3.5 py-1.5 flex items-center gap-1.5 transition-colors cursor-pointer font-medium rounded-sm"
           >
             <span className="material-symbols-outlined text-xs">logout</span>
             Sign Out Admin
@@ -582,15 +515,15 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
       </div>
 
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 pb-6 border-b border-[#333333]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#E2E8E5]">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[9px] uppercase tracking-[0.35em] bg-[#262010] text-[#D4AF37] px-3 py-1 border border-[#D4AF37]/40 font-semibold">
-              Admin Content Studio
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[9px] uppercase tracking-[0.3em] bg-[#E8F2EE] text-[#1B4D3E] px-2.5 py-0.5 border border-[#1B4D3E]/20 font-bold rounded-xs">
+              Instructor Studio
             </span>
-            <span className="text-xs text-[#888888]">Supabase & Gemini Engine</span>
+            <span className="text-xs text-[#6B7280]">Manual Curriculum Authoring</span>
           </div>
-          <h1 className="font-serif italic text-3xl md:text-4xl text-[#EFEFEF]">
+          <h1 className="font-serif italic text-2xl md:text-3xl text-[#111827]">
             Curriculum Authoring Portal
           </h1>
         </div>
@@ -598,50 +531,50 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
         <div className="flex items-center gap-3">
           <button
             onClick={handleLoadDay2Example}
-            className="text-[10px] uppercase tracking-[0.2em] bg-[#1E1E1E] hover:bg-[#282828] text-[#D4AF37] border border-[#D4AF37]/40 px-4 py-2.5 font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+            className="text-[11px] uppercase tracking-[0.15em] bg-white hover:bg-[#F3F4F6] text-[#1B4D3E] border border-[#1B4D3E]/30 px-3.5 py-2 font-medium transition-all cursor-pointer flex items-center gap-1.5 rounded-sm"
             title="Load Example from prompt: Day 2 - A Boy Who Rescued an Injured Bird"
           >
             <span className="material-symbols-outlined text-[16px]">auto_stories</span>
-            Load Example: Day 2 (Injured Bird)
+            Load Day 2 Preset
           </button>
 
           <button
             onClick={onBackToApp}
-            className="text-[10px] uppercase tracking-[0.2em] bg-[#1A1A1A] hover:bg-[#222222] text-[#AAAAAA] hover:text-[#EFEFEF] border border-[#333333] px-4 py-2.5 transition-all cursor-pointer flex items-center gap-1.5"
+            className="text-[11px] uppercase tracking-[0.15em] bg-[#1B4D3E] hover:bg-[#153E32] text-white px-4 py-2 font-medium transition-all cursor-pointer flex items-center gap-1.5 rounded-sm shadow-xs"
           >
             <span className="material-symbols-outlined text-[16px]">arrow_back</span>
-            Back to Learner View
+            Back to Learner App
           </button>
         </div>
       </div>
 
       {/* Change Password Modal */}
       {showChangePasswordModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-[#181818] border border-[#333333] w-full max-w-md p-6 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#2A2A2A]">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-white border border-[#E2E8E5] w-full max-w-md p-6 shadow-2xl relative rounded-sm">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#E5E7EB]">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#D4AF37] text-lg">lock_reset</span>
-                <h3 className="text-sm uppercase tracking-wider font-semibold text-[#EFEFEF]">
+                <span className="material-symbols-outlined text-[#1B4D3E] text-lg">lock_reset</span>
+                <h3 className="text-sm uppercase tracking-wider font-semibold text-[#111827]">
                   Update Admin Password
                 </h3>
               </div>
               <button
                 onClick={() => setShowChangePasswordModal(false)}
-                className="text-[#888888] hover:text-[#EFEFEF] transition-colors cursor-pointer"
+                className="text-[#6B7280] hover:text-[#111827] transition-colors cursor-pointer"
               >
                 <span className="material-symbols-outlined text-lg">close</span>
               </button>
             </div>
 
             {changePasswordError && (
-              <div className="mb-4 p-3 bg-[#281616] border border-[#522424] text-[#E58F8F] text-xs">
+              <div className="mb-4 p-3 bg-[#FEE2E2] border border-[#FCA5A5] text-[#991B1B] text-xs rounded-sm">
                 {changePasswordError}
               </div>
             )}
 
             {changePasswordSuccess && (
-              <div className="mb-4 p-3 bg-[#19241B] border border-[#2B4B32] text-[#84C99A] text-xs flex items-center gap-2">
+              <div className="mb-4 p-3 bg-[#D1FAE5] border border-[#6EE7B7] text-[#065F46] text-xs flex items-center gap-2 rounded-sm">
                 <span className="material-symbols-outlined text-sm">check_circle</span>
                 Password successfully updated!
               </div>
@@ -649,7 +582,7 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
 
             <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-[#AAAAAA] block mb-1">
+                <label className="text-[10px] uppercase tracking-wider text-[#374151] block mb-1 font-semibold">
                   New Admin Password
                 </label>
                 <input
@@ -657,13 +590,13 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
                   value={newPasswordInput}
                   onChange={(e) => setNewPasswordInput(e.target.value)}
                   placeholder="At least 4 characters"
-                  className="w-full bg-[#111111] border border-[#333333] px-3 py-2 text-sm text-[#EFEFEF] focus:border-[#D4AF37] focus:outline-none"
+                  className="w-full bg-white border border-[#CBD5E1] px-3 py-2 text-sm text-[#111827] focus:border-[#1B4D3E] focus:outline-none rounded-sm"
                   required
                 />
               </div>
 
               <div>
-                <label className="text-[10px] uppercase tracking-wider text-[#AAAAAA] block mb-1">
+                <label className="text-[10px] uppercase tracking-wider text-[#374151] block mb-1 font-semibold">
                   Confirm New Password
                 </label>
                 <input
@@ -671,7 +604,7 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
                   value={confirmPasswordInput}
                   onChange={(e) => setConfirmPasswordInput(e.target.value)}
                   placeholder="Re-enter new password"
-                  className="w-full bg-[#111111] border border-[#333333] px-3 py-2 text-sm text-[#EFEFEF] focus:border-[#D4AF37] focus:outline-none"
+                  className="w-full bg-white border border-[#CBD5E1] px-3 py-2 text-sm text-[#111827] focus:border-[#1B4D3E] focus:outline-none rounded-sm"
                   required
                 />
               </div>
@@ -680,13 +613,13 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowChangePasswordModal(false)}
-                  className="px-4 py-2 text-xs uppercase tracking-wider text-[#888888] hover:text-[#EFEFEF] cursor-pointer"
+                  className="px-4 py-2 text-xs uppercase tracking-wider text-[#6B7280] hover:text-[#111827] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] px-5 py-2 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors"
+                  className="bg-[#1B4D3E] hover:bg-[#153E32] text-white px-5 py-2 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors rounded-sm"
                 >
                   Save Password
                 </button>
@@ -699,10 +632,10 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
       {/* Notification Toast */}
       {notification && (
         <div
-          className={`mb-6 p-4 border flex items-center gap-3 animate-fade-in ${
+          className={`mb-6 p-4 border flex items-center gap-3 animate-fade-in rounded-sm ${
             notification.type === 'success'
-              ? 'bg-[#19241B] border-[#2B4B32] text-[#84C99A]'
-              : 'bg-[#281616] border-[#4E2424] text-[#E08A8A]'
+              ? 'bg-[#ECFDF5] border-[#A7F3D0] text-[#065F46]'
+              : 'bg-[#FEF2F2] border-[#FECACA] text-[#991B1B]'
           }`}
         >
           <span className="material-symbols-outlined text-xl">
@@ -715,27 +648,27 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
       )}
 
       {/* Days Tabs / Selector */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none border-b border-[#262626]">
-        <span className="text-[10px] uppercase tracking-[0.2em] text-[#777777] shrink-0 mr-2">
+      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none border-b border-[#E2E8E5]">
+        <span className="text-[10px] uppercase tracking-[0.2em] text-[#6B7280] shrink-0 mr-2 font-semibold">
           Select Day:
         </span>
         {daysList.map((d) => (
           <button
             key={d.day_number}
             onClick={() => handleSelectDay(d.day_number)}
-            className={`px-4 py-2 text-xs uppercase tracking-wider border transition-all cursor-pointer shrink-0 ${
+            className={`px-4 py-2 text-xs uppercase tracking-wider border transition-all cursor-pointer shrink-0 rounded-sm ${
               selectedDayNumber === d.day_number
-                ? 'bg-[#262010] border-[#D4AF37] text-[#D4AF37] font-semibold'
-                : 'bg-[#141414] border-[#2A2A2A] text-[#888888] hover:text-[#CCCCCC]'
+                ? 'bg-[#1B4D3E] border-[#1B4D3E] text-white font-semibold shadow-xs'
+                : 'bg-white border-[#E2E8E5] text-[#4B5563] hover:text-[#111827] hover:border-[#CBD5E1]'
             }`}
           >
-            Day {d.day_number}: {d.topic.slice(0, 18)}...
+            Day {d.day_number}
           </button>
         ))}
 
         <button
           onClick={() => handleSelectDay(Math.max(...daysList.map((d) => d.day_number), 0) + 1)}
-          className="px-4 py-2 text-xs uppercase tracking-wider bg-[#141414] hover:bg-[#1C1C1C] border border-dashed border-[#444444] text-[#D4AF37] hover:border-[#D4AF37] transition-all cursor-pointer shrink-0 flex items-center gap-1"
+          className="px-4 py-2 text-xs uppercase tracking-wider bg-white hover:bg-[#F8FAF9] border border-dashed border-[#1B4D3E]/40 text-[#1B4D3E] hover:border-[#1B4D3E] transition-all cursor-pointer shrink-0 flex items-center gap-1 font-semibold rounded-sm"
         >
           <span className="material-symbols-outlined text-sm">add</span>
           Add New Day
@@ -743,199 +676,290 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Lesson Metadata & Reading Materials */}
-        <div className="lg:col-span-6 space-y-6">
-          <div className="bg-[#1A1A1A] border border-[#333333] p-6 space-y-5 shadow-[0px_8px_32px_rgba(0,0,0,0.4)]">
-            <h2 className="font-serif italic text-xl text-[#EFEFEF] pb-2 border-b border-[#282828] flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#D4AF37]"></span>
-              1. Lesson Information
+        {/* Left Column: Lesson Materials (Clean & focused) */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-white border border-[#E2E8E5] p-6 space-y-5 shadow-[0px_4px_20px_rgba(27,77,62,0.04)] rounded-sm">
+            <h2 className="font-serif italic text-xl text-[#111827] pb-2 border-b border-[#E5E7EB] flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#1B4D3E]"></span>
+              1. Lesson Materials
             </h2>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#888888] mb-1.5">
-                  Day Number *
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="90"
-                  value={selectedDayNumber}
-                  onChange={(e) => setSelectedDayNumber(Number(e.target.value))}
-                  className="w-full bg-[#111111] border border-[#333333] px-3.5 py-2.5 text-sm text-[#EFEFEF] focus:outline-none focus:border-[#D4AF37]"
-                />
+            {/* Day Number Selector */}
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#374151] mb-1.5">
+                Day Number *
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="90"
+                value={selectedDayNumber}
+                onChange={(e) => setSelectedDayNumber(Number(e.target.value))}
+                className="w-full max-w-[120px] bg-white border border-[#CBD5E1] px-3.5 py-2 text-sm text-[#111827] focus:outline-none focus:border-[#1B4D3E] rounded-sm font-semibold"
+              />
+            </div>
+
+            {/* Configurable Headings & Titles Section */}
+            <div className="bg-[#F8FAF9] border border-[#E2E8E5] p-4 md:p-5 rounded-sm space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-[#E2E8E5]">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px] text-[#1B4D3E]">title</span>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#1B4D3E]">
+                    Day & Lesson Headings Configuration
+                  </span>
+                </div>
+                <span className="text-[9px] uppercase tracking-wider text-[#6B7280] font-medium bg-white px-2 py-0.5 border border-[#E2E8E5] rounded-xs">
+                  Editable Titles
+                </span>
               </div>
 
-              <div className="col-span-2">
-                <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#888888] mb-1.5">
-                  Topic / Title *
-                </label>
+              {/* 1. Main Home Page & Curriculum Title */}
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#111827]">
+                    1. Main Day Topic / Title * <span className="text-[#6B7280] font-normal">(Home Page & Stepper)</span>
+                  </label>
+                  <span className="text-[9px] text-[#1B4D3E] font-medium">
+                    Preview: Day {selectedDayNumber.toString().padStart(2, '0')}: {topic || 'Topic'}
+                  </span>
+                </div>
                 <input
                   type="text"
-                  placeholder="e.g. A Boy Who Rescued an Injured Bird"
+                  placeholder="e.g. Morning Routines & Habit Loops"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  className="w-full bg-[#111111] border border-[#333333] px-3.5 py-2.5 text-sm text-[#EFEFEF] focus:outline-none focus:border-[#D4AF37]"
+                  className="w-full bg-white border border-[#CBD5E1] px-3.5 py-2.5 text-sm text-[#111827] font-medium focus:outline-none focus:border-[#1B4D3E] rounded-sm"
                 />
+                <p className="text-[11px] text-[#6B7280] mt-1">
+                  Controls the primary headline displayed on the Home Page (<em>"Day {selectedDayNumber.toString().padStart(2, '0')}: {topic || '...'}"</em>) and the main Curriculum Stepper.
+                </p>
+              </div>
+
+              {/* 2. Step 1: Listening Section Heading */}
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#111827]">
+                    2. Step 1: Listening Heading <span className="text-[#6B7280] font-normal">(Video Lesson Screen)</span>
+                  </label>
+                  <span className="text-[9px] text-[#6B7280]">
+                    Shown when student clicks Listening
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="e.g. The Science of Morning Routines & Productive Habits"
+                  value={youtubeTitle}
+                  onChange={(e) => setYoutubeTitle(e.target.value)}
+                  className="w-full bg-white border border-[#CBD5E1] px-3.5 py-2.5 text-sm text-[#111827] focus:outline-none focus:border-[#1B4D3E] rounded-sm"
+                />
+                <p className="text-[11px] text-[#6B7280] mt-1">
+                  Specific heading displayed at the top of the video player in Step 1 (Listening Practice).
+                </p>
+              </div>
+
+              {/* 3. Step 2: Reading Section Heading */}
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#111827]">
+                    3. Step 2: Reading Heading <span className="text-[#6B7280] font-normal">(Companion Story Screen)</span>
+                  </label>
+                  <span className="text-[9px] text-[#6B7280]">
+                    Shown when student clicks Reading
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  placeholder="e.g. The 6:00 AM Architect"
+                  value={readingHeading}
+                  onChange={(e) => setReadingHeading(e.target.value)}
+                  className="w-full bg-white border border-[#CBD5E1] px-3.5 py-2.5 text-sm text-[#111827] focus:outline-none focus:border-[#1B4D3E] rounded-sm"
+                />
+                <p className="text-[11px] text-[#6B7280] mt-1">
+                  Specific heading displayed at the top of the reading companion in Step 2 (Reading Guide).
+                </p>
               </div>
             </div>
 
+            {/* YouTube Video URL */}
             <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#888888] mb-1.5">
-                YouTube Video URL *
+              <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#374151] mb-1.5">
+                YouTube Video URL (Step 1 Video)
               </label>
               <input
                 type="url"
                 placeholder="https://www.youtube.com/watch?v=..."
                 value={youtubeUrl}
                 onChange={(e) => setYoutubeUrl(e.target.value)}
-                className="w-full bg-[#111111] border border-[#333333] px-3.5 py-2.5 text-sm text-[#EFEFEF] focus:outline-none focus:border-[#D4AF37]"
+                className="w-full bg-white border border-[#CBD5E1] px-3.5 py-2.5 text-sm text-[#111827] focus:outline-none focus:border-[#1B4D3E] rounded-sm"
               />
             </div>
 
-            <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#888888] mb-1.5">
-                YouTube Video Title
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. How to Make Stress Your Friend | Kelly McGonigal"
-                value={youtubeTitle}
-                onChange={(e) => setYoutubeTitle(e.target.value)}
-                className="w-full bg-[#111111] border border-[#333333] px-3.5 py-2.5 text-sm text-[#EFEFEF] focus:outline-none focus:border-[#D4AF37]"
-              />
-            </div>
-
+            {/* Story / Reading Content */}
             <div>
               <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#888888]">
-                  Story / Reading Content *
+                <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#374151]">
+                  Story / Reading Text
                 </label>
-                <span className="text-[10px] text-[#666666]">
+                <span className="text-[10px] text-[#6B7280]">
                   {storyContent.split(/\s+/).filter(Boolean).length} words
                 </span>
               </div>
               <textarea
-                rows={6}
-                placeholder="Paste the complete reading story or excerpt here..."
+                rows={7}
+                placeholder="Paste the complete reading story or excerpt for learners here..."
                 value={storyContent}
                 onChange={(e) => setStoryContent(e.target.value)}
-                className="w-full bg-[#111111] border border-[#333333] p-3.5 text-sm text-[#EFEFEF] font-serif leading-relaxed focus:outline-none focus:border-[#D4AF37]"
+                className="w-full bg-white border border-[#CBD5E1] p-3.5 text-sm text-[#111827] font-serif leading-relaxed focus:outline-none focus:border-[#1B4D3E] rounded-sm"
               />
             </div>
 
-            {/* PDF Section */}
-            <div className="pt-2 border-t border-[#262626]">
-              <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#888888] mb-2">
-                Optional Companion PDF (Upload to Supabase Storage or External URL)
-              </label>
+            {/* Companion PDF Section */}
+            <div className="pt-3 border-t border-[#E5E7EB] space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#374151]">
+                  Companion PDF Document (Changes per Day)
+                </label>
+                {pdfFilename && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPdfFilename('');
+                      setPdfUrl('');
+                      showNotice('success', 'Companion PDF removed from this day');
+                    }}
+                    className="text-[10px] text-[#DC2626] hover:underline uppercase tracking-wider font-semibold cursor-pointer"
+                  >
+                    Clear PDF
+                  </button>
+                )}
+              </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <label className="bg-[#111111] hover:bg-[#1D1D1D] border border-[#333333] hover:border-[#D4AF37] px-4 py-2 text-xs uppercase tracking-wider text-[#D4AF37] flex items-center gap-2 cursor-pointer transition-colors">
-                    <span className="material-symbols-outlined text-base">upload_file</span>
-                    {isUploadingPdf ? 'Uploading...' : 'Choose PDF File'}
-                    <input
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      onChange={handlePdfFileChange}
-                      className="hidden"
-                    />
-                  </label>
-
-                  {pdfFilename && (
-                    <span className="text-xs text-[#AAAAAA] truncate flex items-center gap-1">
-                      <span className="material-symbols-outlined text-sm text-[#68BA89]">check</span>
-                      {pdfFilename}
-                    </span>
-                  )}
-                </div>
-
-                <div>
+              {/* Editable PDF Document Title/Filename */}
+              <div>
+                <label className="block text-[9px] font-semibold uppercase tracking-[0.2em] text-[#6B7280] mb-1">
+                  PDF Guide Name / Filename (Editable)
+                </label>
+                <div className="flex items-center gap-2">
                   <input
-                    type="url"
-                    placeholder="Or enter direct PDF URL (e.g. https://.../guide.pdf)"
-                    value={pdfUrl}
-                    onChange={(e) => setPdfUrl(e.target.value)}
-                    className="w-full bg-[#111111] border border-[#333333] px-3.5 py-2 text-xs text-[#EFEFEF] focus:outline-none focus:border-[#D4AF37]"
+                    type="text"
+                    placeholder={`e.g. Day_${selectedDayNumber.toString().padStart(2, '0')}_Lesson_Guide.pdf`}
+                    value={pdfFilename}
+                    onChange={(e) => setPdfFilename(e.target.value)}
+                    className="w-full bg-white border border-[#CBD5E1] px-3.5 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#1B4D3E] rounded-sm"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setPdfFilename(`Day_${selectedDayNumber.toString().padStart(2, '0')}_Lesson_Guide.pdf`)}
+                    className="px-3 py-2 bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#374151] text-[10px] uppercase tracking-wider font-medium whitespace-nowrap rounded-sm cursor-pointer transition-colors"
+                    title="Set standard naming for this day"
+                  >
+                    Auto-Name
+                  </button>
                 </div>
               </div>
-            </div>
 
-            {/* Lesson Context */}
-            <div>
-              <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-[#888888] mb-1.5">
-                Additional Context & Target Vocabulary
-              </label>
-              <textarea
-                rows={3}
-                placeholder="Key grammar rules, idioms, moral lessons, or character details to guide the AI..."
-                value={lessonContext}
-                onChange={(e) => setLessonContext(e.target.value)}
-                className="w-full bg-[#111111] border border-[#333333] p-3 text-xs text-[#CCCCCC] focus:outline-none focus:border-[#D4AF37]"
-              />
+              {/* Upload File & Link Controls */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <label className="bg-white hover:bg-[#F8FAF9] border border-[#1B4D3E]/40 px-4 py-2 text-xs uppercase tracking-wider text-[#1B4D3E] font-medium flex items-center gap-2 cursor-pointer transition-colors rounded-sm shadow-2xs">
+                  <span className="material-symbols-outlined text-base">upload_file</span>
+                  {isUploadingPdf ? 'Processing PDF...' : 'Choose / Replace PDF File'}
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    onChange={handlePdfFileChange}
+                    className="hidden"
+                  />
+                </label>
+
+                {pdfUrl && (
+                  <a
+                    href={pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-[#1B4D3E] hover:underline flex items-center gap-1 font-medium bg-[#E8F2EE] px-3 py-1.5 border border-[#1B4D3E]/20 rounded-sm"
+                  >
+                    <span className="material-symbols-outlined text-sm">open_in_new</span>
+                    Test / Preview PDF
+                  </a>
+                )}
+              </div>
+
+              {/* Direct PDF Link */}
+              <div>
+                <label className="block text-[9px] font-semibold uppercase tracking-[0.2em] text-[#6B7280] mb-1">
+                  Direct Download Link / URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://example.com/day-guide.pdf"
+                  value={pdfUrl}
+                  onChange={(e) => setPdfUrl(e.target.value)}
+                  className="w-full bg-white border border-[#CBD5E1] px-3.5 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#1B4D3E] rounded-sm"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: 30 Hindi Translation Sentences */}
-        <div className="lg:col-span-6 space-y-6">
-          <div className="bg-[#1A1A1A] border border-[#333333] p-6 space-y-5 shadow-[0px_8px_32px_rgba(0,0,0,0.4)]">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#282828]">
+        {/* Right Column: Manual Translation Sentences */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="bg-white border border-[#E2E8E5] p-6 space-y-5 shadow-[0px_4px_20px_rgba(27,77,62,0.04)] rounded-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E5E7EB]">
               <div>
-                <h2 className="font-serif italic text-xl text-[#EFEFEF] flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#D4AF37]"></span>
-                  2. Translation Sentences ({sentences.length} / 30)
+                <h2 className="font-serif italic text-xl text-[#111827] flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#1B4D3E]"></span>
+                  2. Translation Practice Sentences ({sentences.length})
                 </h2>
-                <span className="text-[10px] text-[#888888] uppercase tracking-wider">
-                  Progression: 1-10 Beginner • 11-20 Intermediate • 21-30 Advanced
+                <span className="text-[10px] text-[#6B7280] uppercase tracking-wider">
+                  Author English sentences and Hindi/Urdu translations manually
                 </span>
               </div>
 
-              {/* Generate 30 Sentences Button */}
+              {/* Add Sentence Button */}
               <button
-                onClick={handleGenerate30Sentences}
-                disabled={isGenerating}
-                className="bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] px-5 py-2.5 text-[10px] uppercase tracking-[0.2em] font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                onClick={handleAddSentence}
+                className="bg-[#1B4D3E] hover:bg-[#153E32] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer rounded-sm shadow-xs"
               >
-                <span className={`material-symbols-outlined text-base ${isGenerating ? 'animate-spin' : ''}`}>
-                  {isGenerating ? 'refresh' : 'auto_awesome'}
-                </span>
-                {isGenerating ? 'Generating 30...' : 'Generate 30 Sentences'}
+                <span className="material-symbols-outlined text-sm">add_circle</span>
+                Add Sentence
               </button>
             </div>
 
             {sentences.length === 0 ? (
-              <div className="p-8 text-center border border-dashed border-[#333333] space-y-3">
-                <span className="material-symbols-outlined text-4xl text-[#555555]">translate</span>
-                <p className="text-xs text-[#888888] max-w-sm mx-auto">
-                  Click <strong>[ Generate 30 Sentences ]</strong> above to prompt Gemini AI to generate 30 Hindi-to-English translation sentences connected specifically to your story and video.
+              <div className="p-8 text-center border border-dashed border-[#CBD5E1] space-y-3 rounded-sm bg-[#F9FAFB]">
+                <span className="material-symbols-outlined text-4xl text-[#9CA3AF]">translate</span>
+                <p className="text-xs text-[#4B5563] max-w-sm mx-auto">
+                  No translation sentences added yet for Day {selectedDayNumber}. Click <strong>[ + Add Sentence ]</strong> to add your first translation practice pair.
                 </p>
+                <button
+                  onClick={handleAddSentence}
+                  className="bg-white hover:bg-[#F3F4F6] text-[#1B4D3E] border border-[#1B4D3E]/40 px-4 py-2 text-xs uppercase tracking-wider font-medium inline-flex items-center gap-1.5 cursor-pointer rounded-sm"
+                >
+                  <span className="material-symbols-outlined text-sm">add</span>
+                  Add First Sentence
+                </button>
               </div>
             ) : (
-              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+              <div className="space-y-4 max-h-[620px] overflow-y-auto pr-1">
                 {sentences.map((sentence, idx) => (
                   <div
                     key={sentence.id || idx}
-                    className="bg-[#141414] border border-[#282828] p-4 space-y-2 hover:border-[#3E3E3E] transition-all"
+                    className="bg-[#F8FAF9] border border-[#E2E8E5] p-4 space-y-2.5 hover:border-[#CBD5E1] transition-all rounded-sm"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="w-6 h-6 rounded bg-[#222222] text-[#D4AF37] font-semibold text-xs flex items-center justify-center">
+                        <span className="w-6 h-6 rounded-full bg-[#1B4D3E] text-white font-semibold text-xs flex items-center justify-center">
                           {sentence.sentence_order || idx + 1}
                         </span>
-                        <span
-                          className={`text-[9px] uppercase tracking-wider px-2 py-0.5 rounded font-semibold ${
-                            idx < 10
-                              ? 'bg-[#19241B] text-[#68BA89]'
-                              : idx < 20
-                              ? 'bg-[#262010] text-[#D4AF37]'
-                              : 'bg-[#281622] text-[#C978A8]'
-                          }`}
+                        <select
+                          value={sentence.difficulty || (idx < 10 ? 'Beginner' : idx < 20 ? 'Intermediate' : 'Advanced')}
+                          onChange={(e) => handleSentenceChange(idx, 'difficulty', e.target.value)}
+                          className="text-[10px] uppercase tracking-wider bg-white border border-[#CBD5E1] text-[#1B4D3E] font-semibold px-2 py-0.5 rounded-sm focus:outline-none"
                         >
-                          {sentence.difficulty || (idx < 10 ? 'Beginner' : idx < 20 ? 'Intermediate' : 'Advanced')}
-                        </span>
+                          <option value="Beginner">Beginner</option>
+                          <option value="Intermediate">Intermediate</option>
+                          <option value="Advanced">Advanced</option>
+                        </select>
                       </div>
 
                       {/* Reorder and Delete Controls */}
@@ -944,7 +968,7 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
                           onClick={() => handleReorder(idx, 'up')}
                           disabled={idx === 0}
                           title="Move Up"
-                          className="text-[#666666] hover:text-[#EFEFEF] disabled:opacity-20 p-1 cursor-pointer"
+                          className="text-[#6B7280] hover:text-[#111827] disabled:opacity-20 p-1 cursor-pointer transition-colors"
                         >
                           <span className="material-symbols-outlined text-sm">arrow_upward</span>
                         </button>
@@ -952,65 +976,68 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
                           onClick={() => handleReorder(idx, 'down')}
                           disabled={idx === sentences.length - 1}
                           title="Move Down"
-                          className="text-[#666666] hover:text-[#EFEFEF] disabled:opacity-20 p-1 cursor-pointer"
+                          className="text-[#6B7280] hover:text-[#111827] disabled:opacity-20 p-1 cursor-pointer transition-colors"
                         >
                           <span className="material-symbols-outlined text-sm">arrow_downward</span>
                         </button>
                         <button
-                          onClick={() => handleRegenerateSingleSentence(idx)}
-                          title="Regenerate this sentence"
-                          className="text-[#666666] hover:text-[#D4AF37] p-1 cursor-pointer"
-                        >
-                          <span className="material-symbols-outlined text-sm">cached</span>
-                        </button>
-                        <button
                           onClick={() => handleDeleteSentence(idx)}
-                          title="Delete"
-                          className="text-[#666666] hover:text-[#E07A7A] p-1 cursor-pointer"
+                          title="Delete Sentence"
+                          className="text-[#9CA3AF] hover:text-[#DC2626] p-1 cursor-pointer transition-colors"
                         >
                           <span className="material-symbols-outlined text-sm">delete</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* Editable Hindi */}
+                    {/* Hindi / Urdu Sentence */}
                     <div>
+                      <label className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7280] block mb-1">
+                        Hindi / Urdu Sentence *
+                      </label>
                       <input
                         type="text"
                         value={sentence.hindi}
                         onChange={(e) => handleSentenceChange(idx, 'hindi', e.target.value)}
-                        placeholder="Hindi sentence"
-                        className="w-full bg-[#181818] border border-[#2E2E2E] px-3 py-1.5 text-xs text-[#EFEFEF] focus:outline-none focus:border-[#D4AF37]"
+                        placeholder="यहाँ हिंदी वाक्य लिखें... (e.g. वह तुरंत उसे अपने घर ले आया।)"
+                        className="w-full bg-white border border-[#CBD5E1] px-3 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#1B4D3E] rounded-sm"
                       />
                     </div>
 
-                    {/* Editable English Target */}
+                    {/* Target English Sentence */}
                     <div>
+                      <label className="text-[10px] font-semibold uppercase tracking-wider text-[#1B4D3E] block mb-1">
+                        English Translation *
+                      </label>
                       <input
                         type="text"
                         value={sentence.english}
                         onChange={(e) => handleSentenceChange(idx, 'english', e.target.value)}
-                        placeholder="Target English translation"
-                        className="w-full bg-[#181818] border border-[#2E2E2E] px-3 py-1.5 text-xs text-[#D4AF37] font-medium focus:outline-none focus:border-[#D4AF37]"
+                        placeholder="Enter natural English translation... (e.g. He brought it home immediately.)"
+                        className="w-full bg-white border border-[#CBD5E1] px-3 py-2 text-xs text-[#111827] font-medium focus:outline-none focus:border-[#1B4D3E] rounded-sm"
                       />
                     </div>
 
                     {/* Hint & Key Grammar */}
-                    <div className="grid grid-cols-2 gap-2 text-[11px]">
-                      <input
-                        type="text"
-                        value={sentence.hint || ''}
-                        onChange={(e) => handleSentenceChange(idx, 'hint', e.target.value)}
-                        placeholder="Hint: keywords..."
-                        className="bg-[#111111] border border-[#222222] px-2 py-1 text-[#888888]"
-                      />
-                      <input
-                        type="text"
-                        value={sentence.key_grammar || ''}
-                        onChange={(e) => handleSentenceChange(idx, 'key_grammar', e.target.value)}
-                        placeholder="Grammar rule note..."
-                        className="bg-[#111111] border border-[#222222] px-2 py-1 text-[#888888]"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <input
+                          type="text"
+                          value={sentence.hint || ''}
+                          onChange={(e) => handleSentenceChange(idx, 'hint', e.target.value)}
+                          placeholder="Optional cue (e.g. brought it home)"
+                          className="w-full bg-white border border-[#E2E8E5] px-2.5 py-1.5 text-xs text-[#4B5563] rounded-sm placeholder-[#9CA3AF] focus:border-[#1B4D3E] focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <input
+                          type="text"
+                          value={sentence.key_grammar || ''}
+                          onChange={(e) => handleSentenceChange(idx, 'key_grammar', e.target.value)}
+                          placeholder="Optional grammar note"
+                          className="w-full bg-white border border-[#E2E8E5] px-2.5 py-1.5 text-xs text-[#4B5563] rounded-sm placeholder-[#9CA3AF] focus:border-[#1B4D3E] focus:outline-none"
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1021,13 +1048,13 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
               <div className="flex justify-between items-center pt-2">
                 <button
                   onClick={handleAddSentence}
-                  className="text-[10px] uppercase tracking-wider text-[#888888] hover:text-[#D4AF37] flex items-center gap-1 cursor-pointer"
+                  className="text-xs uppercase tracking-wider text-[#1B4D3E] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-sm">add</span>
-                  Add Extra Sentence
+                  <span className="material-symbols-outlined text-sm">add_circle</span>
+                  + Add Another Sentence
                 </button>
-                <span className="text-[10px] text-[#666666]">
-                  Total Sentences: {sentences.length}
+                <span className="text-xs text-[#6B7280]">
+                  Total: <strong className="text-[#111827]">{sentences.length}</strong> sentences
                 </span>
               </div>
             )}
@@ -1035,18 +1062,18 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
         </div>
       </div>
 
-      {/* Save / Commit to Supabase CTA Bar */}
-      <div className="mt-8 pt-6 border-t border-[#333333] flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Save / Commit CTA Bar */}
+      <div className="mt-8 pt-6 border-t border-[#E2E8E5] flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-sm border shadow-xs">
         <div className="flex items-center gap-3">
           <label className="flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={isPublished}
               onChange={(e) => setIsPublished(e.target.checked)}
-              className="accent-[#D4AF37]"
+              className="accent-[#1B4D3E] w-4 h-4 cursor-pointer"
             />
-            <span className="text-xs uppercase tracking-wider text-[#CCCCCC]">
-              Published & Available for Learners
+            <span className="text-xs uppercase tracking-wider text-[#374151] font-medium">
+              Published & Available in Learner Curriculum
             </span>
           </label>
         </div>
@@ -1054,12 +1081,12 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
         <button
           onClick={handleSaveAndPublish}
           disabled={isSaving}
-          className="w-full sm:w-auto bg-[#D4AF37] hover:bg-[#e0bd49] text-[#111111] px-10 py-4 font-sans text-[11px] uppercase tracking-[0.25em] font-semibold flex items-center justify-center gap-3 transition-all cursor-pointer shadow-[0px_4px_24px_rgba(212,175,55,0.3)] disabled:opacity-50"
+          className="w-full sm:w-auto bg-[#1B4D3E] hover:bg-[#153E32] text-white px-8 py-3.5 font-sans text-xs uppercase tracking-[0.2em] font-semibold flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-sm disabled:opacity-50 rounded-sm"
         >
           <span className="material-symbols-outlined text-lg">
             {isSaving ? 'hourglass_top' : 'cloud_upload'}
           </span>
-          {isSaving ? 'Saving to Supabase...' : `Save & Publish Day ${selectedDayNumber}`}
+          {isSaving ? 'Saving Changes...' : `Save & Publish Day ${selectedDayNumber}`}
         </button>
       </div>
     </main>

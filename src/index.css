@@ -1,58 +1,58 @@
 @import "tailwindcss";
 
 @theme {
-  --color-surface: #111111;
-  --color-surface-dim: #0d0d0d;
-  --color-surface-bright: #1c1c1c;
-  --color-surface-container-lowest: #141414;
-  --color-surface-container-low: #1a1a1a;
-  --color-surface-container: #1e1e1e;
-  --color-surface-container-high: #242424;
-  --color-surface-container-highest: #2e2e2e;
-  --color-surface-variant: #262626;
+  --color-surface: #ffffff;
+  --color-surface-dim: #f4f6f4;
+  --color-surface-bright: #ffffff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f8faf9;
+  --color-surface-container: #f1f5f3;
+  --color-surface-container-high: #e8f0ec;
+  --color-surface-container-highest: #dde8e2;
+  --color-surface-variant: #e2e8e5;
 
-  --color-on-surface: #efefef;
-  --color-on-surface-variant: #aaaaaa;
-  --color-inverse-surface: #f0f0f0;
-  --color-inverse-on-surface: #111111;
+  --color-on-surface: #111827;
+  --color-on-surface-variant: #4b5563;
+  --color-inverse-surface: #1b4d3e;
+  --color-inverse-on-surface: #ffffff;
 
-  --color-outline: #555555;
-  --color-outline-variant: #333333;
-  --color-surface-tint: #d4af37;
+  --color-outline: #cbd5e1;
+  --color-outline-variant: #e2e8f0;
+  --color-surface-tint: #1b4d3e;
 
-  --color-primary: #efefef;
-  --color-on-primary: #111111;
-  --color-primary-container: #d4af37;
-  --color-on-primary-container: #111111;
-  --color-inverse-primary: #d4af37;
+  --color-primary: #1b4d3e;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #e8f2ee;
+  --color-on-primary-container: #1b4d3e;
+  --color-inverse-primary: #86efac;
 
-  --color-secondary: #d4af37;
-  --color-on-secondary: #111111;
-  --color-secondary-container: #262010;
-  --color-on-secondary-container: #d4af37;
+  --color-secondary: #1b4d3e;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #e8f2ee;
+  --color-on-secondary-container: #1b4d3e;
 
-  --color-tertiary: #b08d29;
-  --color-on-tertiary: #111111;
-  --color-tertiary-container: #332812;
-  --color-on-tertiary-container: #e8c86d;
+  --color-tertiary: #2d6a4f;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #d8f3dc;
+  --color-on-tertiary-container: #1b4d3e;
 
-  --color-error: #e06d6d;
+  --color-error: #dc2626;
   --color-on-error: #ffffff;
-  --color-error-container: #3d1414;
-  --color-on-error-container: #fca5a5;
+  --color-error-container: #fee2e2;
+  --color-on-error-container: #991b1b;
 
-  --color-primary-fixed: #d4af37;
-  --color-primary-fixed-dim: #b5952f;
-  --color-on-primary-fixed: #111111;
-  --color-on-primary-fixed-variant: #e8c86d;
+  --color-primary-fixed: #1b4d3e;
+  --color-primary-fixed-dim: #153e32;
+  --color-on-primary-fixed: #ffffff;
+  --color-on-primary-fixed-variant: #e8f2ee;
 
-  --color-secondary-fixed: #d4af37;
-  --color-secondary-fixed-dim: #b5952f;
-  --color-on-secondary-fixed: #111111;
-  --color-on-secondary-fixed-variant: #262010;
+  --color-secondary-fixed: #1b4d3e;
+  --color-secondary-fixed-dim: #153e32;
+  --color-on-secondary-fixed: #ffffff;
+  --color-on-secondary-fixed-variant: #e8f2ee;
 
-  --color-background: #111111;
-  --color-on-background: #efefef;
+  --color-background: #ffffff;
+  --color-on-background: #111827;
 
   --font-serif: "Source Serif 4", Georgia, serif;
   --font-sans: "Hanken Grotesk", system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -60,8 +60,8 @@
 
 body {
   font-family: var(--font-sans);
-  background-color: #ffff;
-  color: #111111;
+  background-color: #ffffff;
+  color: #111827;
   -webkit-font-smoothing: antialiased;
 }
 

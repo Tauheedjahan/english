@@ -33,7 +33,8 @@ export const SEED_DAYS: DayRecord[] = [
     day_number: 1,
     topic: 'Morning Routines & Habit Loops',
     youtube_url: 'https://www.youtube.com/watch?v=RcGyVTAoXEU',
-    youtube_title: 'How to make stress your friend | Kelly McGonigal',
+    youtube_title: 'The Science of Morning Routines & Productive Habits',
+    reading_heading: 'The 6:00 AM Architect',
     story_content: `The dawn broke over the city in a soft wash of amber and steel-grey light. While the neighborhood was still wrapped in silence, Rohan woke up at 6:00 AM. He immediately resisted the urge to reach for his smartphone. Instead, he drank a large glass of lukewarm water to kick-start his metabolism and stood beside the open window, inhaling the crisp morning air. Over the past month, he had replaced chaos with quiet intention. He used to stay up late browsing social media, but now he prioritized physical and mental clarity. By preparing his mind and embracing challenge with courage, every morning became an architectural foundation for genuine productivity.`,
     pdf_url: '',
     pdf_filename: 'Day_01_Morning_Routines_Guide.pdf',
@@ -45,6 +46,7 @@ export const SEED_DAYS: DayRecord[] = [
     topic: 'A Boy Who Rescued an Injured Bird',
     youtube_url: 'https://www.youtube.com/watch?v=kOuV4kKq5_I',
     youtube_title: 'The Power of Kindness and Empathy',
+    reading_heading: 'The Injured Sparrow’s Flight',
     story_content: `On a brisk autumn afternoon, a ten-year-old boy named Aarav was walking through the park when he noticed something fluttering helplessly in the bushes. Moving closer, he discovered a small sparrow with a fractured wing. Remembering what his grandfather had taught him about gentle care, Aarav carefully scooped up the bird in his woolen cap and brought it home. He prepared a warm shoebox with soft cotton, fed it tiny droplets of fresh water with a dropper, and protected it from winter drafts. Over three weeks of patient nourishment, the wing slowly healed. One sunny morning, Aarav opened his bedroom window. The sparrow fluttered its wings, looked back with gratitude, and soared into the sky. Aarav realized that compassion requires patience, but its freedom brings immense joy.`,
     pdf_url: '',
     pdf_filename: 'Day_02_Rescuing_Injured_Bird.pdf',
@@ -668,7 +670,14 @@ export async function fetchPublishedDays(): Promise<DayRecord[]> {
     const raw = localStorage.getItem(STORAGE_DAYS_KEY);
     if (raw) {
       const parsed: DayRecord[] = JSON.parse(raw);
-      return parsed.sort((a, b) => a.day_number - b.day_number);
+      return parsed.map((p) => {
+        const seed = SEED_DAYS.find((s) => s.day_number === p.day_number);
+        return {
+          ...p,
+          reading_heading: p.reading_heading || seed?.reading_heading || p.topic,
+          youtube_title: p.youtube_title || seed?.youtube_title || p.topic,
+        };
+      }).sort((a, b) => a.day_number - b.day_number);
     }
   } catch {}
 
@@ -684,64 +693,79 @@ export async function saveDay(
   day: DayRecord,
   sentences?: SentenceRecord[]
 ): Promise<{ error: Error | null; day: DayRecord }> {
-  // If Supabase is available, sync to Supabase
+  // Always guarantee local persistence first so changes are never lost
+  saveDayLocally(day, sentences);
+
+  // If Supabase is available, sync to Supabase in background
   if (supabase) {
     try {
-      const { data, error } = await supabase
+      const payload: any = {
+        day_number: day.day_number,
+        topic: day.topic,
+        youtube_url: day.youtube_url,
+        youtube_title: day.youtube_title || '',
+        reading_heading: day.reading_heading || '',
+        story_content: day.story_content,
+        pdf_url: day.pdf_url || '',
+        pdf_filename: day.pdf_filename || '',
+        lesson_context: day.lesson_context || '',
+        is_published: day.is_published ?? true,
+        updated_at: new Date().toISOString(),
+      };
+
+      let { data, error } = await supabase
         .from('days')
-        .upsert(
-          {
-            day_number: day.day_number,
-            topic: day.topic,
-            youtube_url: day.youtube_url,
-            youtube_title: day.youtube_title || '',
-            story_content: day.story_content,
-            pdf_url: day.pdf_url || '',
-            pdf_filename: day.pdf_filename || '',
-            lesson_context: day.lesson_context || '',
-            is_published: day.is_published ?? true,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'day_number' }
-        )
+        .upsert(payload, { onConflict: 'day_number' })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error && error.message && error.message.includes('reading_heading')) {
+        // Fallback in case remote postgres doesn't have the reading_heading column yet
+        delete payload.reading_heading;
+        const retry = await supabase
+          .from('days')
+          .upsert(payload, { onConflict: 'day_number' })
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
+
+      if (error) {
+        console.warn('Supabase days upsert note:', error.message);
+      }
 
       // Save sentences if provided
       if (sentences && sentences.length > 0) {
-        // Delete previous sentences for day
-        await supabase
-          .from('translation_sentences')
-          .delete()
-          .eq('day_number', day.day_number);
+        try {
+          await supabase
+            .from('translation_sentences')
+            .delete()
+            .eq('day_number', day.day_number);
 
-        const rows = sentences.map((s, idx) => ({
-          day_number: day.day_number,
-          sentence_order: idx + 1,
-          hindi: s.hindi,
-          english: s.english,
-          alternatives: s.alternatives || [],
-          hint: s.hint || '',
-          key_grammar: s.key_grammar || '',
-          difficulty: s.difficulty || 'Beginner',
-        }));
+          const rows = sentences.map((s, idx) => ({
+            day_number: day.day_number,
+            sentence_order: idx + 1,
+            hindi: s.hindi,
+            english: s.english,
+            alternatives: s.alternatives || [],
+            hint: s.hint || '',
+            key_grammar: s.key_grammar || '',
+            difficulty: s.difficulty || 'Beginner',
+          }));
 
-        await supabase.from('translation_sentences').insert(rows);
+          await supabase.from('translation_sentences').insert(rows);
+        } catch (sErr) {
+          console.warn('Supabase sentences sync note:', sErr);
+        }
       }
-
-      // Also sync to local storage for fast cached access
-      saveDayLocally(day, sentences);
 
       return { error: null, day: data || day };
     } catch (err: any) {
-      console.warn('Supabase saveDay error, saving locally:', err);
+      console.warn('Supabase saveDay sync note, persisted locally:', err?.message || err);
     }
   }
 
-  // Fallback to local storage
-  saveDayLocally(day, sentences);
   return { error: null, day };
 }
 
@@ -757,13 +781,15 @@ function saveDayLocally(day: DayRecord, sentences?: SentenceRecord[]) {
     }
     localStorage.setItem(STORAGE_DAYS_KEY, JSON.stringify(daysList));
 
-    if (sentences && sentences.length > 0) {
+    if (sentences !== undefined) {
       const rawSentences = localStorage.getItem(STORAGE_SENTENCES_KEY);
       let allSentences: SentenceRecord[] = rawSentences ? JSON.parse(rawSentences) : [];
       // Remove previous sentences for this day
       allSentences = allSentences.filter((s) => s.day_number !== day.day_number);
-      // Append new
-      allSentences.push(...sentences);
+      // Append new if any
+      if (sentences.length > 0) {
+        allSentences.push(...sentences);
+      }
       localStorage.setItem(STORAGE_SENTENCES_KEY, JSON.stringify(allSentences));
     }
   } catch (e) {
