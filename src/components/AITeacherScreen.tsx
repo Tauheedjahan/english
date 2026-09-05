@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatMessage, AIScoreRecord } from '../types';
-import { INITIAL_CHAT_MESSAGES } from '../data/mockData';
 import { saveAIScore, getCurrentUser } from '../lib/supabase';
 
 interface AITeacherScreenProps {
@@ -17,6 +16,170 @@ interface AITeacherScreenProps {
   onOpenTranslationPractice?: () => void;
 }
 
+// Generate the opening conversation question strictly grounded in the day's story
+function getInitialStoryChat(currentDay: number, topic: string, storyContent: string): ChatMessage[] {
+  const story = (storyContent || '').trim();
+  const storyLower = story.toLowerCase();
+
+  // If specific Aarav sparrow story (only if BOTH aarav and sparrow are in storyContent)
+  if (storyLower.includes('aarav') && storyLower.includes('sparrow')) {
+    return [
+      {
+        id: `msg-init-${currentDay}`,
+        sender: 'teacher',
+        text: `Welcome to Day ${currentDay} Conversation Practice! Today our conversation is completely based on your reading story: "${topic}".\n\nLet's discuss what happened: To begin, where was Aarav walking when he first noticed something fluttering in the bushes, and what did he discover?`,
+        timestamp: 'Just now',
+        tip: 'Answer in a full sentence: "Aarav was walking through the park when he noticed..."',
+        followup: 'Mention the condition the bird was in when he found it.',
+      },
+    ];
+  }
+
+  // If specific Rohan / 6:00 AM Architect story (only if BOTH rohan and 6:00 am are in storyContent)
+  if (storyLower.includes('rohan') && storyLower.includes('6:00 am')) {
+    return [
+      {
+        id: `msg-init-${currentDay}`,
+        sender: 'teacher',
+        text: `Welcome to Day ${currentDay} Conversation Practice! Today our conversation is completely based on your reading story: "${topic}".\n\nTo begin our discussion: In the story, what time did Rohan wake up, and what immediate temptation did he resist?`,
+        timestamp: 'Just now',
+        tip: 'Answer in a complete sentence: "Rohan woke up at 6:00 AM and resisted the urge to..."',
+        followup: 'Describe what he drank to kick-start his day.',
+      },
+    ];
+  }
+
+  // Any custom or user-authored story
+  const sentences = story
+    .split(/(?<=[.?!])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 15);
+
+  const starterDetail = sentences.length > 0
+    ? `At the beginning of your story: "${sentences[0]}"`
+    : `In the reading passage for "${topic}"`;
+
+  const secondDetail = sentences.length > 1 ? `As it continues: "${sentences[1]}"` : '';
+
+  return [
+    {
+      id: `msg-init-${currentDay}`,
+      sender: 'teacher',
+      text: `Welcome to Day ${currentDay} Conversation Practice! Today our conversation is completely based on your reading story: "${topic}".\n\n${starterDetail}\n${secondDetail}\n\nWhat happens in this opening scene, and what challenge or situation does the character experience?`,
+      timestamp: 'Just now',
+      tip: 'Use narrative past tense to describe the opening actions in the story.',
+      followup: 'Describe the setting and the character\'s first reaction.',
+    },
+  ];
+}
+
+// Local story fallback when API is unreachable
+function getLocalStoryFallbackReply(
+  prompt: string,
+  topic: string,
+  storyContent: string,
+  historyCount: number
+): ChatMessage {
+  const lower = prompt.toLowerCase();
+  const story = (storyContent || '').trim();
+  const storyLower = story.toLowerCase();
+  
+  const isAaravBird = storyLower.includes('aarav') && storyLower.includes('sparrow');
+  const isRohanMorning = storyLower.includes('rohan') && storyLower.includes('6:00 am');
+
+  if (isAaravBird) {
+    if (lower.includes('park') || lower.includes('saw') || lower.includes('found') || lower.includes('bush') || lower.includes('flutter')) {
+      return {
+        id: `msg-${Date.now()}-ai`,
+        sender: 'teacher',
+        text: "That's exactly right! Aarav was walking through the park when he noticed the sparrow fluttering helplessly in the bushes with a fractured wing. What did Aarav use to carry the bird safely home, and how did he prepare a warm bed for it?",
+        timestamp: 'Just now',
+        tip: 'Notice the phrase "fluttering helplessly" — it vividly describes the gentle, wounded wing movements.',
+        followup: 'Try using the phrase "woolen cap" and "shoebox with soft cotton".',
+      };
+    } else if (lower.includes('cap') || lower.includes('box') || lower.includes('cotton') || lower.includes('water') || lower.includes('dropper')) {
+      return {
+        id: `msg-${Date.now()}-ai`,
+        sender: 'teacher',
+        text: "Spot on! He scooped it up in his woolen cap, prepared a warm shoebox with soft cotton, and fed it fresh water with a dropper. How long did it take for the bird's wing to heal, and what happened when he opened the window?",
+        timestamp: 'Just now',
+        tip: 'Use the phrase "nurse back to health" to describe caring for an injured creature.',
+        followup: 'Describe how the sparrow reacted before soaring into the open sky.',
+      };
+    } else {
+      return {
+        id: `msg-${Date.now()}-ai`,
+        sender: 'teacher',
+        text: "A wonderful and heartfelt answer! The story shows that compassion requires patience, but seeing the sparrow fly free brought immense joy. In your own words, what is the greatest moral lesson we learn from Aarav's actions?",
+        timestamp: 'Just now',
+        tip: 'Use phrases like "The moral of the story is..." or "Aarav taught us that kindness..."',
+        followup: 'Share your personal thoughts on helping animals or people in distress.',
+      };
+    }
+  }
+
+  if (isRohanMorning) {
+    if (lower.includes('6:00') || lower.includes('wake') || lower.includes('phone') || lower.includes('rohan') || lower.includes('resist')) {
+      return {
+        id: `msg-${Date.now()}-ai`,
+        sender: 'teacher',
+        text: "Excellent observation! In the story, Rohan woke up at 6:00 AM and resisted reaching for his smartphone. What did he drink to kick-start his metabolism, and what did he do at the open window?",
+        timestamp: 'Just now',
+        tip: 'Notice the phrasal verb "kick-start" — it means giving an energetic start to a process.',
+        followup: 'Describe what he used to do before he made this change.',
+      };
+    } else if (lower.includes('water') || lower.includes('window') || lower.includes('air') || lower.includes('used to')) {
+      return {
+        id: `msg-${Date.now()}-ai`,
+        sender: 'teacher',
+        text: "Exactly right! He drank a large glass of lukewarm water and inhaled the crisp morning air. The story mentions that he used to stay up late browsing social media. How did he replace chaos with quiet intention?",
+        timestamp: 'Just now',
+        tip: 'Use "used to" + base verb to describe past habits that no longer happen.',
+        followup: 'Explain how preparing your mind builds productivity.',
+      };
+    } else {
+      return {
+        id: `msg-${Date.now()}-ai`,
+        sender: 'teacher',
+        text: `Great answer! In "${topic}", the author emphasizes that every morning is an architectural foundation for productivity. What habit from this story would you like to apply in your own life?`,
+        timestamp: 'Just now',
+        tip: 'Use transition markers like "Consequently", "In doing so", or "As a result".',
+        followup: 'Share one morning habit you find most valuable.',
+      };
+    }
+  }
+
+  // Dynamic story analyzer for ANY custom story
+  const sentences = story
+    .split(/(?<=[.?!])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 15);
+
+  const idx = Math.min(Math.max(historyCount, 0), Math.max(0, sentences.length - 1));
+  const currentStorySentence = sentences[idx] || sentences[0] || 'The story concludes with an important realization.';
+  const isConclusion = idx >= sentences.length - 2;
+
+  if (isConclusion) {
+    return {
+      id: `msg-${Date.now()}-ai`,
+      sender: 'teacher',
+      text: `A thoughtful and accurate response! Toward the conclusion of "${topic}", the story states: "${currentStorySentence}". What is the core moral or lesson that this story teaches us?`,
+      timestamp: 'Just now',
+      tip: 'Summarize your takeaway: "The story clearly demonstrates that..."',
+      followup: 'How does the message in this story apply to our daily lives?',
+    };
+  }
+
+  return {
+    id: `msg-${Date.now()}-ai`,
+    sender: 'teacher',
+    text: `Well expressed! Following the narrative of "${topic}", the text recounts: "${currentStorySentence}". Why did this happen, and how did the characters handle this situation?`,
+    timestamp: 'Just now',
+    tip: 'Use narrative past tense to describe the actions in the story.',
+    followup: 'Share your thoughts on what the character did next.',
+  };
+}
+
 export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
   currentDay = 1,
   dayCompleted = false,
@@ -30,19 +193,10 @@ export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
   onOpenReadingPractice,
   onOpenTranslationPractice,
 }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    if (currentDay === 1) return INITIAL_CHAT_MESSAGES;
-    return [
-      {
-        id: 'msg-init-1',
-        sender: 'teacher',
-        text: `Welcome to Day ${currentDay} conversational practice! Today we explored "${topic}". Have you finished watching the video and reading the lesson story?`,
-        timestamp: 'Just now',
-        tip: 'Speak in full, natural sentences to develop cadence and confidence.',
-        followup: 'Tell me, what was the most memorable moment or insight from today\'s lesson?',
-      },
-    ];
-  });
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    getInitialStoryChat(currentDay, topic, storyContent)
+  );
+  const [showStoryGuide, setShowStoryGuide] = useState(false);
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
@@ -50,6 +204,17 @@ export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState<AIScoreRecord | null>(null);
   const [showFinishedModal, setShowFinishedModal] = useState(false);
+
+  // Sync initial message when active day or story content changes if user hasn't messaged yet
+  useEffect(() => {
+    setMessages((prev) => {
+      const hasStudentMsg = prev.some((m) => m.sender === 'student');
+      if (!hasStudentMsg) {
+        return getInitialStoryChat(currentDay, topic, storyContent);
+      }
+      return prev;
+    });
+  }, [currentDay, topic, storyContent]);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const recognitionRef = useRef<any>(null);
@@ -133,7 +298,7 @@ export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
     setInputText('');
     setIsSending(true);
 
-    // Call server-side conversational endpoint or use intelligent conversational fallback
+    // Call server-side conversational endpoint or use intelligent story-grounded fallback
     try {
       const response = await fetch('/api/chat-teacher', {
         method: 'POST',
@@ -144,7 +309,7 @@ export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
           topic,
           storyContent,
           lessonContext,
-          history: messages.slice(-6),
+          history: messages.slice(-8),
         }),
       });
 
@@ -153,7 +318,7 @@ export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
         const teacherMsg: ChatMessage = {
           id: `msg-${Date.now()}-ai`,
           sender: 'teacher',
-          text: data.reply || 'Great response! Keep expressing your thoughts with this vocabulary.',
+          text: data.reply || data.text || 'Great response! Keep expressing your thoughts about the story.',
           timestamp: 'Just now',
           tip: data.tip,
           correction: data.correction,
@@ -165,42 +330,17 @@ export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
         return;
       }
     } catch {
-      // Fallback below
+      // Fallback to local story generator below
     }
 
-    // Local smart fallback teacher response (no external API needed!)
+    // Local smart fallback teacher response (100% grounded in the story!)
     setTimeout(() => {
-      const lower = promptToSend.toLowerCase();
-      let teacherMsg: ChatMessage;
-
-      if (lower.includes('morning') || lower.includes('wake') || lower.includes('routine')) {
-        teacherMsg = {
-          id: `msg-${Date.now()}-ai`,
-          sender: 'teacher',
-          text: `Well done! Talking about habitual morning routines is a foundational pillar of spoken English. Your sentence connects well with today's theme.`,
-          timestamp: 'Just now',
-          tip: 'Notice the difference between "I wake up" (stopping sleep) and "I get out of bed" (physically standing up).',
-          followup: 'What is the very first thing you do right after you get out of bed?',
-        };
-      } else if (lower.includes('used to') || lower.includes('past') || lower.includes('before')) {
-        teacherMsg = {
-          id: `msg-${Date.now()}-ai`,
-          sender: 'teacher',
-          text: `Excellent use of temporal reflection! Using "used to" followed by a base verb describes discontinued habits smoothly.`,
-          timestamp: 'Just now',
-          tip: 'Remember: "used to" takes the base form of the verb without "-ed" (e.g. "I used to wake up early").',
-          followup: 'Is there another old habit that you used to have but have now replaced?',
-        };
-      } else {
-        teacherMsg = {
-          id: `msg-${Date.now()}-ai`,
-          sender: 'teacher',
-          text: `You expressed that thought with clarity! Connecting your spoken thoughts to "${topic}" helps cement both grammar and communicative confidence.`,
-          timestamp: 'Just now',
-          tip: 'Try incorporating transition markers like "Furthermore", "In addition", or "Consequently".',
-          followup: 'How does this lesson inspire you in your own daily decisions?',
-        };
-      }
+      const teacherMsg = getLocalStoryFallbackReply(
+        promptToSend,
+        topic,
+        storyContent,
+        studentMessageCount
+      );
 
       setMessages((prev) => [...prev, teacherMsg]);
       playTTS(teacherMsg.text);
@@ -225,7 +365,7 @@ export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
         fluency_score: 93,
         sentence_structure_score: 94,
         relevance_score: 96,
-        feedback_strengths: 'Clear pronunciation, accurate sentence flow, and strong usage of daily routine vocabulary.',
+        feedback_strengths: `Clear pronunciation, accurate sentence flow, and strong comprehension of "${topic}".`,
         feedback_mistakes: 'Minor preposition nuances and occasional tense consistency.',
         feedback_improvements: 'Practice speaking with transition clauses like "furthermore" and "as a result".',
         feedback_corrections: [],
@@ -246,62 +386,6 @@ export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
 
   return (
     <main className="flex-grow w-full max-w-[1200px] mx-auto px-4 md:px-12 py-6 md:py-10 flex flex-col min-h-[calc(100vh-140px)] bg-white text-[#111827]">
-      {/* Workflow Navigation Header */}
-      {onBackToLessons && (
-        <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#E2E8E5]">
-          <button
-            onClick={onBackToLessons}
-            className="flex items-center gap-2 text-[#4B5563] hover:text-[#1B4D3E] text-[10px] uppercase tracking-[0.25em] font-semibold transition-colors cursor-pointer group"
-          >
-            <span className="material-symbols-outlined text-[16px] group-hover:-translate-x-1 transition-transform">
-              arrow_back
-            </span>
-            Curriculum
-          </button>
-
-          {/* Workflow steps - Clickable cross-step navigation */}
-          <div className="flex items-center gap-1.5 md:gap-2 text-[10px] uppercase tracking-[0.2em]">
-            <button
-              onClick={onOpenListeningPractice}
-              className="text-[#1B4D3E] hover:bg-[#E8F2EE] flex items-center gap-1 font-semibold px-2.5 py-1 rounded-full transition-colors cursor-pointer"
-              title="Return to Video Listening"
-            >
-              <span className="material-symbols-outlined text-[14px]">check</span>
-              <span className="hidden sm:inline">1. Listening</span>
-            </button>
-            <span className="text-[#CBD5E1]">→</span>
-            <button
-              onClick={onOpenReadingPractice}
-              className="text-[#1B4D3E] hover:bg-[#E8F2EE] flex items-center gap-1 font-semibold px-2.5 py-1 rounded-full transition-colors cursor-pointer"
-              title="Return to Companion Reading Guide"
-            >
-              <span className="material-symbols-outlined text-[14px]">check</span>
-              <span className="hidden sm:inline">2. Reading</span>
-            </button>
-            <span className="text-[#CBD5E1]">→</span>
-            <button
-              onClick={onOpenTranslationPractice}
-              className="text-[#1B4D3E] hover:bg-[#E8F2EE] flex items-center gap-1 font-semibold px-2.5 py-1 rounded-full transition-colors cursor-pointer"
-              title="Return to Sentence Translation"
-            >
-              <span className="material-symbols-outlined text-[14px]">check</span>
-              <span className="hidden sm:inline">3. Translation</span>
-            </button>
-            <span className="text-[#CBD5E1]">→</span>
-            <span className="text-[#1B4D3E] font-bold flex items-center gap-1.5 bg-[#E8F2EE] border border-[#1B4D3E]/30 px-3 py-1 rounded-full">
-              <span className="w-2 h-2 rounded-full bg-[#1B4D3E]"></span>
-              4. AI Conversation
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-wider text-[#1B4D3E] font-mono font-bold">
-              Day 01
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Title & Info */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
@@ -313,15 +397,15 @@ export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
               Interactive AI Tutor
             </span>
           </div>
-          <h1 className="font-serif italic text-[28px] md:text-[38px] font-medium text-[#111827] mb-1">
-            Day 01 Oral Fluency Discussion
+          <h1 className="font-serif italic text-[26px] md:text-[36px] font-medium text-[#111827] mb-1">
+            Day {currentDay.toString().padStart(2, '0')}: {topic}
           </h1>
           <p className="font-sans text-[13px] md:text-[14px] text-[#4B5563]">
-            Practice speaking about your morning routine, the video insights, and the translation structures.
+            Oral fluency conversation strictly based on today's reading story. Answer questions, explore the characters' choices, and practice speaking.
           </p>
         </div>
 
-        {/* Finish Day 1 Action Button */}
+        {/* Finish Day Action Button */}
         <div>
           <button
             onClick={handleFinishDay}
@@ -334,7 +418,7 @@ export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
             <span className="material-symbols-outlined text-[16px]">
               {dayCompleted ? 'check_circle' : 'flag'}
             </span>
-            {dayCompleted ? 'Day 01 Completed ✓' : 'Complete AI Conversation & Finish Day 1'}
+            {dayCompleted ? `Day ${currentDay} Completed ✓` : `Complete Conversation & Finish Day ${currentDay}`}
           </button>
         </div>
       </div>
@@ -343,30 +427,47 @@ export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
         {/* Left Column: Context & Speaking Prompts */}
         <div className="lg:col-span-4 flex flex-col gap-5">
-          {/* Day 1 Context Card */}
+          {/* Day Context Card - Strictly Grounded in Current Story */}
           <div className="bg-white border border-[#E2E8E5] p-5 shadow-xs rounded-sm">
-            <span className="font-sans text-[9px] font-bold text-[#1B4D3E] uppercase tracking-[0.3em] block mb-2">
-              Thematic Synthesis
-            </span>
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-sans text-[9px] font-bold text-[#1B4D3E] uppercase tracking-[0.3em] block">
+                Story Grounding
+              </span>
+              <button
+                onClick={() => setShowStoryGuide(!showStoryGuide)}
+                className="text-[10px] text-[#1B4D3E] font-semibold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>{showStoryGuide ? 'Hide Full Story' : 'Read Full Story'}</span>
+                <span className="material-symbols-outlined text-[14px]">
+                  {showStoryGuide ? 'expand_less' : 'expand_more'}
+                </span>
+              </button>
+            </div>
             <h2 className="font-serif italic text-xl font-medium text-[#111827] mb-2">
-              Morning Habits & Fluency
+              {topic}
             </h2>
-            <p className="font-sans text-xs text-[#4B5563] leading-relaxed mb-4">
-              Your AI tutor connects questions directly to what you watched in the YouTube video, read in "The 6:00 AM Architect", and practiced across the sentences.
+            <p className="font-sans text-xs text-[#4B5563] leading-relaxed mb-3">
+              Your AI conversation is 100% focused on this story: the plot, the characters, actions taken, and the deeper moral lesson.
             </p>
 
+            {showStoryGuide && storyContent && (
+              <div className="bg-[#F8FAF9] border border-[#E2E8E5] p-3 text-xs text-[#374151] leading-relaxed max-h-56 overflow-y-auto mb-3 font-serif rounded-xs">
+                {storyContent}
+              </div>
+            )}
+
             <div className="space-y-2 border-t border-[#E5E7EB] pt-3 text-xs">
-              <div className="flex items-center gap-2 text-[#374151]">
+              <div className="flex items-start gap-2 text-[#374151]">
                 <span className="text-[#1B4D3E] font-bold">•</span>
-                <span>Phrasal Verbs: <em>kick-start, tidy up, wake up</em></span>
+                <span><strong>Story Focus:</strong> Recall who is in the story and what problem they faced.</span>
               </div>
-              <div className="flex items-center gap-2 text-[#374151]">
+              <div className="flex items-start gap-2 text-[#374151]">
                 <span className="text-[#1B4D3E] font-bold">•</span>
-                <span>Past Habits: <em>"I used to [base verb]"</em></span>
+                <span><strong>Actions & Details:</strong> Describe how the character resolved the situation step-by-step.</span>
               </div>
-              <div className="flex items-center gap-2 text-[#374151]">
+              <div className="flex items-start gap-2 text-[#374151]">
                 <span className="text-[#1B4D3E] font-bold">•</span>
-                <span>Prepositions: <em>for breakfast, on my way to</em></span>
+                <span><strong>Moral Lesson:</strong> Share your thoughts on what this story teaches about compassion and life.</span>
               </div>
             </div>
           </div>

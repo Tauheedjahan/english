@@ -1,4 +1,4 @@
-export type TabType = 'home' | 'progress' | 'ai_teacher' | 'settings' | 'admin';
+export type TabType = 'home' | 'progress' | 'ai_teacher' | 'settings';
 
 export type ScreenView = 
   | 'home'
@@ -10,7 +10,8 @@ export type ScreenView =
   | 'progress'
   | 'ai_teacher'
   | 'settings'
-  | 'admin';
+  | 'admin'
+  | 'admin_login';
 
 export type WorkflowStepId = 'listening' | 'reading' | 'translation' | 'ai_conversation';
 
@@ -20,6 +21,7 @@ export interface UserProfile {
   full_name: string;
   avatar_url?: string;
   is_admin?: boolean;
+  created_at?: string;
 }
 
 export interface DayRecord {

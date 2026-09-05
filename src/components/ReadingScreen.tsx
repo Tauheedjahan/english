@@ -77,111 +77,6 @@ export const ReadingScreen: React.FC<ReadingScreenProps> = ({
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#FFFFFF] text-[#111827]">
-      {/* Workflow Header Bar */}
-      <header className="sticky top-0 z-30 border-b border-[#E2E8E5] px-4 md:px-12 h-18 max-w-[1200px] mx-auto w-full flex items-center justify-between bg-white/95 backdrop-blur-md">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-[#4B5563] hover:text-[#1B4D3E] transition-colors cursor-pointer group"
-        >
-          <span className="material-symbols-outlined text-[18px] group-hover:-translate-x-1 transition-transform">
-            arrow_back
-          </span>
-          <span className="font-sans text-[10px] uppercase tracking-[0.25em] font-semibold">
-            Curriculum
-          </span>
-        </button>
-
-        {/* Step Indicator - Clickable cross-step navigation */}
-        <div className="flex items-center gap-1.5 md:gap-2 text-[10px] uppercase tracking-[0.2em]">
-          <button
-            onClick={onOpenListeningPractice}
-            className="text-[#1B4D3E] hover:bg-[#E8F2EE] flex items-center gap-1 font-semibold px-2.5 py-1 rounded-full transition-colors cursor-pointer"
-            title="Return to Video Listening"
-          >
-            <span className="material-symbols-outlined text-[14px]">check</span>
-            <span>1. Listening</span>
-          </button>
-          <span className="text-[#CBD5E1]">→</span>
-          <span className="text-[#1B4D3E] font-bold flex items-center gap-1.5 bg-[#E8F2EE] border border-[#1B4D3E]/30 px-3 py-1 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-[#1B4D3E]"></span>
-            2. Reading
-          </span>
-          <span className="text-[#CBD5E1]">→</span>
-          <button
-            onClick={() => {
-              if (isTranslationUnlocked || hasReadContent) {
-                onOpenTranslationPractice?.();
-              } else {
-                setModalInfo({
-                  isOpen: true,
-                  targetStepTitle: 'Step 03: Translation Sentences',
-                  requiredStepTitle: 'Companion Reading Guide',
-                  requiredStepNumber: 2,
-                  message: 'Please confirm that you have finished reading the companion passage to unlock Step 3 (Translation).',
-                });
-              }
-            }}
-            className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
-              isTranslationUnlocked || hasReadContent
-                ? 'text-[#1B4D3E] hover:bg-[#E8F2EE] font-semibold'
-                : 'text-[#6B7280] hover:text-[#111827]'
-            }`}
-          >
-            {(isTranslationUnlocked || hasReadContent) && (
-              <span className="material-symbols-outlined text-[13px]">check</span>
-            )}
-            3. Translation
-          </button>
-          <span className="text-[#CBD5E1] hidden sm:inline">→</span>
-          <button
-            onClick={() => {
-              if (isAIUnlocked) {
-                onOpenAIConversation?.();
-              } else {
-                setModalInfo({
-                  isOpen: true,
-                  targetStepTitle: 'Step 04: AI Conversation',
-                  requiredStepTitle: 'Sentence Translation Mastery',
-                  requiredStepNumber: 3,
-                  message: 'Please complete both Reading and Translation sentences before entering the oral AI conversation.',
-                });
-              }
-            }}
-            className={`hidden md:flex items-center gap-1 px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
-              isAIUnlocked
-                ? 'text-[#1B4D3E] hover:bg-[#E8F2EE] font-semibold'
-                : 'text-[#6B7280] hover:text-[#111827]'
-            }`}
-          >
-            4. AI Conversation
-          </button>
-        </div>
-
-        {/* Action: Open PDF Book */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowPdfModal(true)}
-            className="inline-flex items-center gap-2 bg-[#1B4D3E] hover:bg-[#153E32] text-white text-[10px] uppercase tracking-[0.2em] font-semibold px-4 py-2 rounded-sm transition-colors shadow-xs cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
-            <span className="hidden sm:inline">Open / Download PDF</span>
-          </button>
-
-          {/* Hindi Toggle */}
-          <label className="flex items-center gap-2 cursor-pointer select-none border border-[#E2E8E5] px-3 py-1.5 rounded-full bg-white shadow-xs">
-            <span className="text-[10px] uppercase tracking-[0.15em] text-[#4B5563] font-semibold hidden md:inline">
-              हिंदी
-            </span>
-            <input
-              type="checkbox"
-              checked={showHindi}
-              onChange={(e) => setShowHindi(e.target.checked)}
-              className="accent-[#1B4D3E] cursor-pointer"
-            />
-          </label>
-        </div>
-      </header>
-
       {/* PDF Modal / Document View */}
       {showPdfModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
@@ -269,14 +164,40 @@ export const ReadingScreen: React.FC<ReadingScreenProps> = ({
         <article className="animate-fade-in">
           {/* Chapter Header */}
           <div className="mb-8 text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-              <span className="inline-block px-3 py-0.5 bg-[#E8F2EE] text-[#1B4D3E] font-sans text-[9px] font-bold uppercase tracking-[0.3em] border border-[#1B4D3E]/20 rounded-xs">
-                Day {dayNumber.toString().padStart(2, '0')} // Step 2 of 4
-              </span>
-              <span className="text-[#6B7280] text-[10px] uppercase tracking-[0.25em]">
-                {topic ? `${topic} // ` : ''}Chapter 0{currentPage.pageNumber}
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-block px-3 py-0.5 bg-[#E8F2EE] text-[#1B4D3E] font-sans text-[9px] font-bold uppercase tracking-[0.3em] border border-[#1B4D3E]/20 rounded-xs">
+                  Day {dayNumber.toString().padStart(2, '0')} // Step 2 of 4
+                </span>
+                <span className="text-[#6B7280] text-[10px] uppercase tracking-[0.25em]">
+                  {topic ? `${topic} // ` : ''}Chapter 0{currentPage.pageNumber}
+                </span>
+              </div>
+
+              {/* Action: Open PDF Book & Hindi Toggle */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowPdfModal(true)}
+                  className="inline-flex items-center gap-1.5 bg-[#1B4D3E] hover:bg-[#153E32] text-white text-[10px] uppercase tracking-[0.2em] font-semibold px-3 py-1.5 rounded-sm transition-colors shadow-xs cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[15px]">picture_as_pdf</span>
+                  <span>PDF Guide</span>
+                </button>
+
+                <label className="flex items-center gap-1.5 cursor-pointer select-none border border-[#E2E8E5] px-2.5 py-1 rounded-full bg-white shadow-xs">
+                  <span className="text-[10px] uppercase tracking-[0.15em] text-[#4B5563] font-semibold">
+                    हिंदी
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={showHindi}
+                    onChange={(e) => setShowHindi(e.target.checked)}
+                    className="accent-[#1B4D3E] cursor-pointer"
+                  />
+                </label>
+              </div>
             </div>
+
             <h1 className="font-serif italic text-[32px] md:text-[42px] leading-tight font-medium text-[#111827] mb-3">
               {readingHeading || topic}
             </h1>

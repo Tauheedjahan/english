@@ -21,7 +21,10 @@ import { ProgressScreen } from './components/ProgressScreen';
 import { AITeacherScreen } from './components/AITeacherScreen';
 import { SettingsScreen } from './components/SettingsScreen';
 import { AdminPortalScreen } from './components/AdminPortalScreen';
+import { AdminLoginScreen } from './components/AdminLoginScreen';
+import { AdminAccessBlockedScreen } from './components/AdminAccessBlockedScreen';
 import { StepRestrictionModal } from './components/StepRestrictionModal';
+import { CurriculumStepSubMenu } from './components/CurriculumStepSubMenu';
 import {
   getCurrentUser,
   signInWithGoogle,
@@ -31,11 +34,48 @@ import {
   fetchUserProgress,
   saveUserProgress,
   SEED_DAYS,
+  ADMIN_EMAIL,
 } from './lib/supabase';
+
+function getScreenFromLocation(): ScreenView {
+  if (typeof window === 'undefined') return 'home';
+  const path = window.location.pathname.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+  if (path === '/admin/login' || hash === '#/admin/login') return 'admin_login';
+  if (path === '/admin' || hash === '#/admin') return 'admin';
+  return 'home';
+}
 
 export function App() {
   const [currentTab, setCurrentTab] = useState<TabType>('home');
-  const [currentScreen, setCurrentScreen] = useState<ScreenView>('home');
+  const [currentScreen, setCurrentScreen] = useState<ScreenView>(() => getScreenFromLocation());
+
+  // Helper to change screen and keep URL path synchronized
+  const navigateTo = useCallback((screen: ScreenView) => {
+    setCurrentScreen(screen);
+    if (typeof window !== 'undefined') {
+      let targetPath = '/';
+      if (screen === 'admin') targetPath = '/admin';
+      else if (screen === 'admin_login') targetPath = '/admin/login';
+      if (window.location.pathname !== targetPath && (targetPath !== '/' || window.location.pathname.startsWith('/admin'))) {
+        window.history.pushState(null, '', targetPath);
+      }
+    }
+  }, []);
+
+  // Listen to browser forward/backward and direct URL changes
+  useEffect(() => {
+    const handlePopState = () => {
+      const target = getScreenFromLocation();
+      setCurrentScreen(target);
+    };
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handlePopState);
+    };
+  }, []);
 
   // Authentication State
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -62,11 +102,36 @@ export function App() {
   // Active Day Record
   const activeDay = publishedDays.find((d) => d.day_number === currentDay) || publishedDays[0] || SEED_DAYS[0];
 
-  // 1. Initialize User Profile from Supabase / Session
+  // 1. Initialize User Profile from Supabase / Session / Admin Token
   useEffect(() => {
     const initAuth = async () => {
       const currentUser = await getCurrentUser();
-      setUser(currentUser);
+      if (currentUser) {
+        setUser(currentUser);
+        return;
+      }
+      // Check stored admin session
+      const adminToken = localStorage.getItem('admin_session_token');
+      if (adminToken) {
+        try {
+          const res = await fetch('/api/admin/verify', {
+            headers: { 'x-admin-token': adminToken },
+          });
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            setUser({
+              id: data.user.id,
+              email: data.user.email,
+              full_name: data.user.full_name,
+              is_admin: true,
+            });
+            return;
+          }
+        } catch {
+          // Ignore
+        }
+      }
+      setUser(null);
     };
     initAuth();
   }, []);
@@ -170,10 +235,19 @@ export function App() {
   };
 
   const handleSignOut = async () => {
+    localStorage.removeItem('admin_session_token');
+    localStorage.removeItem('app_mock_user');
+    try {
+      await fetch('/api/admin/logout', { method: 'POST' });
+    } catch {}
     await signOut();
     setUser(null);
     loadDayAndProgress(currentDay, 'guest-learner-id');
   };
+
+  const isAdminUser = Boolean(
+    user && (user.is_admin || user.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  );
 
   const handleSelectTab = (tab: TabType) => {
     if (tab === 'ai_teacher') {
@@ -422,19 +496,84 @@ export function App() {
     score: userScore,
   };
 
+  const handleNavigateCurriculumStep = (target: ScreenView) => {
+    if (target === 'reading' && !isListeningDone) {
+      setGlobalRestrictionModal({
+        isOpen: true,
+        targetStepTitle: 'Step 02: Companion Reading Guide',
+        requiredStepTitle: 'Native Speaker Listening Analysis',
+        requiredStepNumber: 1,
+        message: 'Please complete the video listening session before proceeding to the reading guide.',
+        onGoToRequired: () => {
+          setGlobalRestrictionModal(null);
+          setCurrentScreen('listening_practice');
+        },
+      });
+      return;
+    }
+    if (target === 'translation' && !isReadingDone) {
+      setGlobalRestrictionModal({
+        isOpen: true,
+        targetStepTitle: 'Step 03: Sentence Translation Mastery',
+        requiredStepTitle: 'Companion Reading Guide',
+        requiredStepNumber: 2,
+        message: 'Please finish reading the companion passage before proceeding to sentence translation.',
+        onGoToRequired: () => {
+          setGlobalRestrictionModal(null);
+          setCurrentScreen('reading');
+        },
+      });
+      return;
+    }
+    if (target === 'ai_teacher' && !isTranslationDone) {
+      setGlobalRestrictionModal({
+        isOpen: true,
+        targetStepTitle: 'Step 04: Oral Fluency & AI Conversation',
+        requiredStepTitle: 'Sentence Translation Mastery',
+        requiredStepNumber: 3,
+        message: `Please complete translation sentences (${completedSentenceIds.length}/${currentSentences.length || 30}) before entering the oral AI conversation.`,
+        onGoToRequired: () => {
+          setGlobalRestrictionModal(null);
+          setCurrentScreen('translation');
+        },
+      });
+      return;
+    }
+
+    setCurrentScreen(target);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#111827] font-sans antialiased selection:bg-[#1B4D3E] selection:text-white">
-      {/* Navigation (TopAppBar on desktop, BottomNavBar on mobile) */}
-      <Navigation
-        currentTab={currentTab}
-        currentScreen={currentScreen}
-        user={user}
-        onSelectTab={handleSelectTab}
-        onOpenSettings={() => handleSelectTab('settings')}
-        onLoginWithGoogle={handleLoginWithGoogle}
-        onSignOut={handleSignOut}
-        onOpenAdmin={() => setCurrentScreen('admin')}
-      />
+      {/* Navigation (TopAppBar on desktop, BottomNavBar on mobile) - Excluded from admin section */}
+      {!['admin', 'admin_login'].includes(currentScreen) && (
+        <Navigation
+          currentTab={currentTab}
+          currentScreen={currentScreen}
+          user={user}
+          onSelectTab={handleSelectTab}
+          onOpenSettings={() => handleSelectTab('settings')}
+          onLoginWithGoogle={handleLoginWithGoogle}
+          onSignOut={handleSignOut}
+        />
+      )}
+
+      {/* Sub-menu appearing right after main menu when practicing any section */}
+      {['listening_practice', 'reading', 'translation', 'ai_teacher'].includes(currentScreen) && (
+        <CurriculumStepSubMenu
+          currentScreen={currentScreen}
+          dayNumber={currentDay}
+          topic={activeDay.topic}
+          isListeningDone={isListeningDone}
+          isReadingDone={isReadingDone}
+          isTranslationDone={isTranslationDone}
+          isAIDone={isAIDone}
+          completedSentenceCount={completedSentenceIds.length}
+          totalSentenceCount={currentSentences.length || 30}
+          onBackToCurriculum={() => setCurrentScreen('lesson_stepper')}
+          onNavigateStep={handleNavigateCurriculumStep}
+        />
+      )}
 
       {/* Main View Router */}
       <div className="flex-grow flex flex-col pb-20 md:pb-6">
@@ -575,28 +714,87 @@ export function App() {
             onNavigateHome={() => handleSelectTab('home')}
             onLoginWithGoogle={handleLoginWithGoogle}
             onSignOut={handleSignOut}
-            onOpenAdmin={() => setCurrentScreen('admin')}
           />
         )}
 
+        {/* Dedicated /admin Section with strict Role-Based Access Control */}
         {currentScreen === 'admin' && (
-          <AdminPortalScreen
-            user={user}
-            onAdminLoginSuccess={(adminUser) => {
-              setUser(adminUser);
-              loadCurriculumDays();
-            }}
-            onAdminSignOut={async () => {
-              await handleSignOut();
-              setCurrentScreen('home');
-            }}
-            onBackToApp={() => setCurrentScreen('home')}
-            onDayPublished={async (dayNum) => {
-              await loadCurriculumDays();
-              setCurrentDay(dayNum);
-              setCurrentScreen('home');
-            }}
-          />
+          isAdminUser ? (
+            <AdminPortalScreen
+              user={user}
+              onAdminLoginSuccess={(adminUser) => {
+                setUser(adminUser);
+                loadCurriculumDays();
+              }}
+              onAdminSignOut={async () => {
+                await handleSignOut();
+                navigateTo('admin_login');
+              }}
+              onBackToApp={() => navigateTo('home')}
+              onDayPublished={async (dayNum) => {
+                await loadCurriculumDays();
+                setCurrentDay(dayNum);
+                navigateTo('home');
+              }}
+            />
+          ) : user ? (
+            /* Normal users are blocked even if they manually enter the admin URL */
+            <AdminAccessBlockedScreen
+              currentUser={user}
+              onNavigateHome={() => navigateTo('home')}
+              onNavigateAdminLogin={() => navigateTo('admin_login')}
+              onSignOut={async () => {
+                await handleSignOut();
+                navigateTo('admin_login');
+              }}
+            />
+          ) : (
+            /* Unauthenticated users attempting /admin are prompted to log in */
+            <AdminLoginScreen
+              currentUser={user}
+              onLoginSuccess={(adminUser) => {
+                setUser(adminUser);
+                loadCurriculumDays();
+                navigateTo('admin');
+              }}
+              onNavigateHome={() => navigateTo('home')}
+              onLoginWithGoogle={handleLoginWithGoogle}
+            />
+          )
+        )}
+
+        {/* Dedicated /admin/login Route */}
+        {currentScreen === 'admin_login' && (
+          isAdminUser ? (
+            <AdminPortalScreen
+              user={user}
+              onAdminLoginSuccess={(adminUser) => {
+                setUser(adminUser);
+                loadCurriculumDays();
+              }}
+              onAdminSignOut={async () => {
+                await handleSignOut();
+                navigateTo('admin_login');
+              }}
+              onBackToApp={() => navigateTo('home')}
+              onDayPublished={async (dayNum) => {
+                await loadCurriculumDays();
+                setCurrentDay(dayNum);
+                navigateTo('home');
+              }}
+            />
+          ) : (
+            <AdminLoginScreen
+              currentUser={user}
+              onLoginSuccess={(adminUser) => {
+                setUser(adminUser);
+                loadCurriculumDays();
+                navigateTo('admin');
+              }}
+              onNavigateHome={() => navigateTo('home')}
+              onLoginWithGoogle={handleLoginWithGoogle}
+            />
+          )
         )}
       </div>
 

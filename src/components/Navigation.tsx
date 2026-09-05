@@ -9,7 +9,6 @@ interface NavigationProps {
   onOpenSettings?: () => void;
   onLoginWithGoogle: () => void;
   onSignOut: () => void;
-  onOpenAdmin: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -19,29 +18,24 @@ export const Navigation: React.FC<NavigationProps> = ({
   onSelectTab,
   onLoginWithGoogle,
   onSignOut,
-  onOpenAdmin,
 }) => {
-  // Hide global navigation on distraction-free task screens (like Listening Practice or Reading)
-  const isTaskFocusedScreen = currentScreen === 'listening_practice' || currentScreen === 'reading';
-
   return (
     <>
-      {/* Desktop TopAppBar */}
-      {!isTaskFocusedScreen && (
-        <header className="docked full-width top-0 border-b border-[#E2E8E5] hidden md:flex justify-between items-center w-full px-8 lg:px-12 h-20 max-w-[1200px] mx-auto z-40 sticky bg-white/95 backdrop-blur-md">
+      {/* Top Main Menu Bar - Always visible across all screen sizes */}
+      <header className="docked full-width top-0 border-b border-[#E2E8E5] flex justify-between items-center w-full px-4 sm:px-6 md:px-8 lg:px-12 h-16 md:h-20 max-w-[1240px] mx-auto z-40 sticky bg-white/95 backdrop-blur-md">
           <div 
             onClick={() => onSelectTab('home')}
-            className="font-serif italic text-[24px] tracking-[0.05em] font-medium text-[#111827] flex items-center gap-2.5 cursor-pointer select-none group"
+            className="font-serif italic text-[18px] sm:text-[22px] md:text-[24px] tracking-[0.05em] font-medium text-[#111827] flex items-center gap-2 sm:gap-2.5 cursor-pointer select-none group shrink-0"
           >
-            <span className="w-3 h-3 rounded-full bg-[#1B4D3E] inline-block shadow-xs"></span>
+            <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#1B4D3E] inline-block shadow-xs"></span>
             <span>90 Days English</span>
           </div>
           
-          <nav className="flex gap-8 lg:gap-10 items-center h-full">
+          <nav className="flex gap-4 sm:gap-6 md:gap-8 lg:gap-10 items-center h-full overflow-x-auto no-scrollbar">
             <button
               onClick={() => onSelectTab('home')}
-              className={`font-sans text-[11px] uppercase tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 ${
-                currentTab === 'home' && !['progress', 'ai_teacher', 'settings', 'admin'].includes(currentScreen)
+              className={`font-sans text-[10px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 whitespace-nowrap ${
+                currentTab === 'home' || ['listening_practice', 'reading', 'translation'].includes(currentScreen)
                   ? 'text-[#1B4D3E] border-[#1B4D3E] font-bold'
                   : 'text-[#4B5563] hover:text-[#111827] border-transparent font-medium'
               }`}
@@ -50,8 +44,8 @@ export const Navigation: React.FC<NavigationProps> = ({
             </button>
             <button
               onClick={() => onSelectTab('progress')}
-              className={`font-sans text-[11px] uppercase tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 ${
-                currentTab === 'progress'
+              className={`font-sans text-[10px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 whitespace-nowrap ${
+                currentTab === 'progress' && currentScreen === 'progress'
                   ? 'text-[#1B4D3E] border-[#1B4D3E] font-bold'
                   : 'text-[#4B5563] hover:text-[#111827] border-transparent font-medium'
               }`}
@@ -60,30 +54,18 @@ export const Navigation: React.FC<NavigationProps> = ({
             </button>
             <button
               onClick={() => onSelectTab('ai_teacher')}
-              className={`font-sans text-[11px] uppercase tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 ${
-                currentTab === 'ai_teacher'
+              className={`font-sans text-[10px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 whitespace-nowrap ${
+                currentScreen === 'ai_teacher' || currentTab === 'ai_teacher'
                   ? 'text-[#1B4D3E] border-[#1B4D3E] font-bold'
                   : 'text-[#4B5563] hover:text-[#111827] border-transparent font-medium'
               }`}
             >
               AI Tutor
             </button>
-            {user?.is_admin && (
-              <button
-                onClick={onOpenAdmin}
-                className={`font-sans text-[11px] uppercase tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 ${
-                  currentScreen === 'admin'
-                    ? 'text-[#1B4D3E] border-[#1B4D3E] font-bold'
-                    : 'text-[#4B5563] hover:text-[#111827] border-transparent font-medium'
-                }`}
-              >
-                Admin Portal
-              </button>
-            )}
             <button
               onClick={() => onSelectTab('settings')}
-              className={`font-sans text-[11px] uppercase tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 ${
-                currentTab === 'settings'
+              className={`font-sans text-[10px] sm:text-[11px] uppercase tracking-[0.2em] sm:tracking-[0.25em] cursor-pointer transition-all duration-200 h-full flex items-center px-1 border-b-2 whitespace-nowrap ${
+                currentTab === 'settings' && currentScreen === 'settings'
                   ? 'text-[#1B4D3E] border-[#1B4D3E] font-bold'
                   : 'text-[#4B5563] hover:text-[#111827] border-transparent font-medium'
               }`}
@@ -157,11 +139,9 @@ export const Navigation: React.FC<NavigationProps> = ({
             )}
           </div>
         </header>
-      )}
 
       {/* Bottom Navigation for Mobile */}
-      {!isTaskFocusedScreen && (
-        <nav className="fixed md:hidden bottom-0 left-0 w-full z-50 flex justify-around items-center px-3 pb-[env(safe-area-inset-bottom,12px)] pt-2 h-16 bg-white border-t border-[#E2E8E5] shadow-lg">
+      <nav className="fixed md:hidden bottom-0 left-0 w-full z-50 flex justify-around items-center px-3 pb-[env(safe-area-inset-bottom,12px)] pt-2 h-16 bg-white border-t border-[#E2E8E5] shadow-lg">
           <button
             onClick={() => onSelectTab('home')}
             aria-label="Home"
@@ -207,23 +187,6 @@ export const Navigation: React.FC<NavigationProps> = ({
             <span className="text-[10px] uppercase tracking-[0.15em] font-medium mt-0.5">AI Tutor</span>
           </button>
 
-          {user?.is_admin && (
-            <button
-              onClick={onOpenAdmin}
-              aria-label="Admin"
-              className={`flex flex-col items-center justify-center rounded-sm px-3 py-1 transition-all ${
-                currentScreen === 'admin'
-                  ? 'bg-[#E8F2EE] text-[#1B4D3E] font-bold'
-                  : 'text-[#6B7280] hover:text-[#111827]'
-              }`}
-            >
-              <span className={`material-symbols-outlined text-[20px] ${currentScreen === 'admin' ? 'icon-filled' : ''}`}>
-                edit_note
-              </span>
-              <span className="text-[10px] uppercase tracking-[0.15em] font-medium mt-0.5">Admin</span>
-            </button>
-          )}
-
           <button
             onClick={() => onSelectTab('settings')}
             aria-label="Settings"
@@ -239,7 +202,6 @@ export const Navigation: React.FC<NavigationProps> = ({
             <span className="text-[10px] uppercase tracking-[0.15em] font-medium mt-0.5">Settings</span>
           </button>
         </nav>
-      )}
     </>
   );
 };

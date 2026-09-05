@@ -572,7 +572,34 @@ export async function loginAdminWithCredentials(
     };
   }
 
-  // 2. If Supabase Auth is configured, try Supabase password login first
+  // 2. Direct Backend Admin Authentication
+  try {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, password: cleanPassword }),
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success && data.token) {
+      localStorage.setItem('admin_session_token', data.token);
+      localStorage.setItem(ADMIN_PASSWORD_KEY, cleanPassword);
+
+      const adminUser: UserProfile = {
+        id: data.user?.id || 'admin-tauheed-jahan',
+        email: ADMIN_EMAIL,
+        full_name: data.user?.full_name || 'Tauheed Jahan',
+        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+        is_admin: true,
+      };
+      localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(adminUser));
+      return { success: true, user: adminUser };
+    }
+  } catch (backendErr) {
+    console.warn('Backend login fallback to local credentials check:', backendErr);
+  }
+
+  // 3. If Supabase Auth is configured, try Supabase password login
   if (supabase) {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -596,12 +623,10 @@ export async function loginAdminWithCredentials(
     }
   }
 
-  // 3. Fallback verification against local admin master password
+  // 4. Fallback verification against local admin master password
   const currentMasterPassword = getStoredAdminPassword();
 
-  // If initial password match or first-time setup
   if (cleanPassword === currentMasterPassword || cleanPassword === 'admin123' || cleanPassword === 'tauheed123') {
-    // Save current password if custom
     if (cleanPassword !== currentMasterPassword) {
       setStoredAdminPassword(cleanPassword);
     }
@@ -651,6 +676,27 @@ export async function signOut(): Promise<void> {
 // ==============================================================================
 
 export async function fetchPublishedDays(): Promise<DayRecord[]> {
+  // 1. Try Backend Curriculum API first (ensures immediate sync from Admin Panel)
+  try {
+    const res = await fetch('/api/curriculum/days');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.days) && data.days.length > 0) {
+        return data.days.map((p: any) => {
+          const seed = SEED_DAYS.find((s) => s.day_number === p.day_number);
+          return {
+            ...p,
+            reading_heading: p.reading_heading || seed?.reading_heading || p.topic,
+            youtube_title: p.youtube_title || seed?.youtube_title || p.topic,
+          };
+        }).sort((a: any, b: any) => a.day_number - b.day_number);
+      }
+    }
+  } catch (apiErr) {
+    console.warn('Backend curriculum days fetch note:', apiErr);
+  }
+
+  // 2. Try Supabase
   if (supabase) {
     try {
       const { data, error } = await supabase
@@ -695,6 +741,23 @@ export async function saveDay(
 ): Promise<{ error: Error | null; day: DayRecord }> {
   // Always guarantee local persistence first so changes are never lost
   saveDayLocally(day, sentences);
+
+  // Sync to backend database API with Admin Authorization
+  try {
+    const token = localStorage.getItem('admin_session_token') || '';
+    const adminSecret = getStoredAdminPassword();
+    await fetch('/api/admin/days', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-token': token,
+        'x-admin-secret': adminSecret,
+      },
+      body: JSON.stringify({ day, sentences }),
+    });
+  } catch (backendErr) {
+    console.warn('Backend /api/admin/days sync note:', backendErr);
+  }
 
   // If Supabase is available, sync to Supabase in background
   if (supabase) {
@@ -802,6 +865,20 @@ function saveDayLocally(day: DayRecord, sentences?: SentenceRecord[]) {
 // ==============================================================================
 
 export async function fetchSentencesForDay(dayNumber: number): Promise<SentenceRecord[]> {
+  // 1. Try Backend API first
+  try {
+    const res = await fetch(`/api/curriculum/days/${dayNumber}/sentences`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.sentences) && data.sentences.length > 0) {
+        return data.sentences.sort((a: any, b: any) => a.sentence_order - b.sentence_order);
+      }
+    }
+  } catch (apiErr) {
+    console.warn('Backend curriculum sentences fetch note:', apiErr);
+  }
+
+  // 2. Try Supabase
   if (supabase) {
     try {
       const { data, error } = await supabase

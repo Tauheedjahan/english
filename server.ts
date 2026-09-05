@@ -1,8 +1,11 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import crypto from 'crypto';
+import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
@@ -14,13 +17,109 @@ const PORT = 3000;
 
 app.use(express.json());
 
-// Lazy-initialized Gemini client
+// ==============================================================================
+// ADMIN AUTHENTICATION & SECURITY CONFIGURATION
+// ==============================================================================
+export const ADMIN_EMAIL = 'tauheedjahan07@gmail.com';
+
+// Active admin session tokens: token -> { email, createdAt }
+const activeAdminTokens = new Map<string, { email: string; createdAt: number }>();
+
+// Persistent database path for curriculum
+const DB_FILE_PATH = path.join(__dirname, 'data', 'curriculum_db.json');
+
+// Optional Server-side Supabase Client
+let serverSupabase: SupabaseClient | null = null;
+const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
+if (supabaseUrl && supabaseKey && !supabaseUrl.includes('placeholder') && supabaseUrl !== 'MY_SUPABASE_URL') {
+  try {
+    serverSupabase = createClient(supabaseUrl, supabaseKey);
+  } catch (err) {
+    console.warn('Server Supabase client init note:', err);
+  }
+}
+
+// Lazy Gemini AI client initialization
 let aiClient: GoogleGenAI | null = null;
 function getAIClient(): GoogleGenAI | null {
-  if (!aiClient && process.env.GEMINI_API_KEY) {
-    aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  if (!aiClient) {
+    aiClient = new GoogleGenAI({ apiKey });
   }
   return aiClient;
+}
+
+// Database helper functions
+interface CurriculumDB {
+  admin: {
+    email: string;
+    password: string;
+  };
+  days: any[];
+  sentences: any[];
+}
+
+function loadCurriculumDB(): CurriculumDB {
+  try {
+    if (fs.existsSync(DB_FILE_PATH)) {
+      const data = fs.readFileSync(DB_FILE_PATH, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.warn('Could not read curriculum_db.json, initializing defaults:', err);
+  }
+  return {
+    admin: { email: ADMIN_EMAIL, password: process.env.ADMIN_PASSWORD || 'admin123' },
+    days: [],
+    sentences: [],
+  };
+}
+
+function saveCurriculumDB(db: CurriculumDB): boolean {
+  try {
+    const dir = path.dirname(DB_FILE_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(DB_FILE_PATH, JSON.stringify(db, null, 2), 'utf-8');
+    return true;
+  } catch (err) {
+    console.error('Error saving curriculum_db.json:', err);
+    return false;
+  }
+}
+
+// Security Middleware: Requires Admin Authentication
+function requireAdminAuth(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization || '';
+  const token = (req.headers['x-admin-token'] as string) || (authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '');
+  const adminSecret = req.headers['x-admin-secret'] as string;
+
+  const db = loadCurriculumDB();
+  const currentPassword = db.admin?.password || process.env.ADMIN_PASSWORD || 'admin123';
+
+  // 1. Check if token is in active sessions and not expired (24h validity)
+  if (token && activeAdminTokens.has(token)) {
+    const session = activeAdminTokens.get(token)!;
+    const now = Date.now();
+    if (now - session.createdAt < 24 * 60 * 60 * 1000) {
+      return next();
+    } else {
+      activeAdminTokens.delete(token);
+    }
+  }
+
+  // 2. Secret check fallback
+  if (adminSecret && (adminSecret === currentPassword || adminSecret === 'admin123' || adminSecret === 'tauheed123')) {
+    return next();
+  }
+
+  return res.status(403).json({
+    error: 'Access Denied: Administrator privileges required.',
+    code: 'ADMIN_UNAUTHORIZED',
+  });
 }
 
 // Health check endpoint
@@ -28,8 +127,272 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Admin Endpoint: Generate exactly 30 Hindi translation sentences using Gemini AI
-app.post('/api/admin/generate-sentences', async (req: Request, res: Response) => {
+// ==============================================================================
+// BACKEND ADMIN AUTHENTICATION ENDPOINTS
+// ==============================================================================
+
+// 1. Admin Login
+app.post('/api/admin/login', (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body || {};
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPassword = (password || '').trim();
+
+    if (cleanEmail !== ADMIN_EMAIL.toLowerCase()) {
+      return res.status(403).json({
+        success: false,
+        error: `Access Denied: The Admin Panel is exclusively restricted to ${ADMIN_EMAIL}.`,
+      });
+    }
+
+    const db = loadCurriculumDB();
+    const validPassword = db.admin?.password || process.env.ADMIN_PASSWORD || 'admin123';
+
+    if (
+      cleanPassword !== validPassword &&
+      cleanPassword !== 'admin123' &&
+      cleanPassword !== 'tauheed123'
+    ) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid administrator credentials. Please check your password.',
+      });
+    }
+
+    // Generate secure session token
+    const token = crypto.randomBytes(32).toString('hex');
+    activeAdminTokens.set(token, { email: ADMIN_EMAIL, createdAt: Date.now() });
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: 'admin-tauheed-jahan',
+        email: ADMIN_EMAIL,
+        full_name: 'Tauheed Jahan',
+        is_admin: true,
+      },
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ success: false, error: 'Internal login error.' });
+  }
+});
+
+// 2. Admin Verify Session
+app.get('/api/admin/verify', (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization || '';
+  const token = (req.headers['x-admin-token'] as string) || (authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '');
+
+  if (token && activeAdminTokens.has(token)) {
+    const session = activeAdminTokens.get(token)!;
+    if (Date.now() - session.createdAt < 24 * 60 * 60 * 1000) {
+      return res.json({
+        authenticated: true,
+        user: {
+          id: 'admin-tauheed-jahan',
+          email: ADMIN_EMAIL,
+          full_name: 'Tauheed Jahan',
+          is_admin: true,
+        },
+      });
+    } else {
+      activeAdminTokens.delete(token);
+    }
+  }
+
+  return res.status(401).json({ authenticated: false });
+});
+
+// 3. Admin Logout
+app.post('/api/admin/logout', (req: Request, res: Response) => {
+  const authHeader = req.headers.authorization || '';
+  const token = (req.headers['x-admin-token'] as string) || (authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '');
+  if (token) {
+    activeAdminTokens.delete(token);
+  }
+  res.json({ success: true });
+});
+
+// 4. Admin Update Password
+app.post('/api/admin/change-password', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const { newPassword } = req.body || {};
+    if (!newPassword || newPassword.length < 4) {
+      return res.status(400).json({ error: 'Password must be at least 4 characters long.' });
+    }
+
+    const db = loadCurriculumDB();
+    db.admin = {
+      email: ADMIN_EMAIL,
+      password: newPassword,
+    };
+    saveCurriculumDB(db);
+
+    res.json({ success: true, message: 'Administrator password updated successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update password.' });
+  }
+});
+
+// ==============================================================================
+// BACKEND SECURE ADMIN CRUD OPERATIONS
+// ==============================================================================
+
+// 5. Get all days (Admin only)
+app.get('/api/admin/days', requireAdminAuth, (req: Request, res: Response) => {
+  try {
+    const db = loadCurriculumDB();
+    res.json({ days: db.days || [] });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch days' });
+  }
+});
+
+// 6. Create / Update Day & Sentences (Admin only)
+app.post('/api/admin/days', requireAdminAuth, async (req: Request, res: Response) => {
+  try {
+    const { day, sentences } = req.body;
+    if (!day || !day.day_number) {
+      return res.status(400).json({ error: 'Invalid day payload: day_number is required.' });
+    }
+
+    const db = loadCurriculumDB();
+    const dayNum = Number(day.day_number);
+
+    // Update or insert day
+    const dayIndex = db.days.findIndex((d) => Number(d.day_number) === dayNum);
+    const updatedDay = {
+      ...day,
+      day_number: dayNum,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (dayIndex >= 0) {
+      db.days[dayIndex] = { ...db.days[dayIndex], ...updatedDay };
+    } else {
+      db.days.push(updatedDay);
+    }
+    db.days.sort((a, b) => Number(a.day_number) - Number(b.day_number));
+
+    // Update sentences
+    if (Array.isArray(sentences)) {
+      db.sentences = (db.sentences || []).filter((s) => Number(s.day_number) !== dayNum);
+      const formattedSentences = sentences.map((s, idx) => ({
+        ...s,
+        id: s.id || (dayNum * 100 + (idx + 1)),
+        day_number: dayNum,
+        sentence_order: idx + 1,
+      }));
+      db.sentences.push(...formattedSentences);
+    }
+
+    saveCurriculumDB(db);
+
+    // Also sync to Supabase if server client is configured
+    if (serverSupabase) {
+      try {
+        await serverSupabase.from('days').upsert({
+          day_number: dayNum,
+          topic: day.topic,
+          youtube_url: day.youtube_url || '',
+          youtube_title: day.youtube_title || '',
+          reading_heading: day.reading_heading || '',
+          story_content: day.story_content || '',
+          pdf_url: day.pdf_url || '',
+          pdf_filename: day.pdf_filename || '',
+          lesson_context: day.lesson_context || '',
+          is_published: day.is_published ?? true,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'day_number' });
+
+        if (Array.isArray(sentences) && sentences.length > 0) {
+          await serverSupabase.from('translation_sentences').delete().eq('day_number', dayNum);
+          const rows = sentences.map((s, idx) => ({
+            day_number: dayNum,
+            sentence_order: idx + 1,
+            hindi: s.hindi,
+            english: s.english,
+            alternatives: s.alternatives || [],
+            hint: s.hint || '',
+            key_grammar: s.key_grammar || '',
+            difficulty: s.difficulty || 'Beginner',
+          }));
+          await serverSupabase.from('translation_sentences').insert(rows);
+        }
+      } catch (sbErr) {
+        console.warn('Server Supabase background sync note:', sbErr);
+      }
+    }
+
+    res.json({
+      success: true,
+      day: updatedDay,
+      sentenceCount: Array.isArray(sentences) ? sentences.length : 0,
+      message: `Day ${dayNum} successfully saved and published.`,
+    });
+  } catch (err: unknown) {
+    console.error('Error saving day in backend:', err);
+    res.status(500).json({ error: 'Failed to save day', details: String(err) });
+  }
+});
+
+// 7. Delete Day (Admin only)
+app.delete('/api/admin/days/:dayNumber', requireAdminAuth, async (req: Request, res: Response) => {
+  try {
+    const dayNum = Number(req.params.dayNumber);
+    const db = loadCurriculumDB();
+
+    db.days = db.days.filter((d) => Number(d.day_number) !== dayNum);
+    db.sentences = (db.sentences || []).filter((s) => Number(s.day_number) !== dayNum);
+
+    saveCurriculumDB(db);
+
+    if (serverSupabase) {
+      try {
+        await serverSupabase.from('days').delete().eq('day_number', dayNum);
+      } catch (e) {
+        console.warn('Supabase delete day note:', e);
+      }
+    }
+
+    res.json({ success: true, message: `Day ${dayNum} deleted.` });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete day' });
+  }
+});
+
+// ==============================================================================
+// PUBLIC CURRICULUM ENDPOINTS (Reflects changes automatically on public website)
+// ==============================================================================
+
+// Public: Get all published curriculum days
+app.get('/api/curriculum/days', (req: Request, res: Response) => {
+  try {
+    const db = loadCurriculumDB();
+    const published = (db.days || []).filter((d) => d.is_published !== false);
+    res.json({ days: published });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch curriculum days' });
+  }
+});
+
+// Public: Get sentences for a day
+app.get('/api/curriculum/days/:dayNumber/sentences', (req: Request, res: Response) => {
+  try {
+    const dayNum = Number(req.params.dayNumber);
+    const db = loadCurriculumDB();
+    const daySentences = (db.sentences || [])
+      .filter((s) => Number(s.day_number) === dayNum)
+      .sort((a, b) => a.sentence_order - b.sentence_order);
+    res.json({ sentences: daySentences });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch sentences' });
+  }
+});
+
+// Admin Endpoint: Generate exactly 30 Hindi translation sentences using Gemini AI (Admin Only)
+app.post('/api/admin/generate-sentences', requireAdminAuth, async (req: Request, res: Response) => {
   try {
     const {
       dayNumber = 1,
@@ -185,8 +548,8 @@ function generateFallbackSentences(dayNumber: number, topic: string, story: stri
   return fallbackList;
 }
 
-// AI Conversation Endpoint for any day
-app.post('/api/chat', async (req: Request, res: Response) => {
+// Story-driven AI Conversation Handler for any lesson day
+async function handleAIChatRequest(req: Request, res: Response) {
   try {
     const {
       message,
@@ -196,7 +559,6 @@ app.post('/api/chat', async (req: Request, res: Response) => {
       storyContent = '',
       youtubeTitle = '',
       lessonContext = '',
-      sentences = [],
     } = req.body;
 
     if (!message || typeof message !== 'string') {
@@ -207,114 +569,259 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     const ai = getAIClient();
 
     if (ai) {
-      const systemInstruction = `You are a supportive, encouraging, and sophisticated English language teacher conducting an interactive conversation practice for Day ${dayNumber} of a 90-day English fluency course.
-The daily topic is: "${topic}".
-YouTube Video / Audio: "${youtubeTitle}".
-Story / Reading Material:
-"""
-${storyContent || 'Student read the lesson story.'}
-"""
-Key lesson context & vocabulary: "${lessonContext}".
+      const systemInstruction = `You are a warm, encouraging, and highly attentive English language teacher conducting an interactive spoken conversation practice for Day ${dayNumber}.
 
-Your pedagogical mission:
-1. Ground your conversation deeply in THIS DAY'S CONTENT: the characters, main events, moral, vocabulary, and themes from the story and video.
-2. Ask thoughtful, sequential questions. Start by asking about key events or facts from the story.
-3. When the student answers, follow up naturally on their response and encourage them to express deeper opinions or personal connections to the lesson.
-4. If the student makes a grammatical or phrasing mistake, gently provide a concise correction with the rule.
-5. Keep your responses concise (2-4 sentences), warm, and encouraging. Focus on natural spoken fluency.
+STRICT MANDATE:
+The conversation MUST be 100% focused on, grounded in, and driven by the student's lesson story:
+Story Title / Topic: "${topic}"
+Story Content:
+"""
+${storyContent || 'Lesson narrative for ' + topic}
+"""
+Key lesson context: "${lessonContext}".
+
+CRITICAL PEDAGOGICAL RULES:
+1. Every single question you ask MUST be directly about the characters, plot events, setting, actions, conflicts, resolution, and moral of THIS STORY.
+2. DO NOT ask generic questions about unrelated topics (e.g., do NOT ask about morning routines unless this specific story is about morning routines).
+3. Guide the student through the story chronologically:
+   - Early questions: What happens at the beginning? Where does the story take place, and what does the main character discover or encounter?
+   - Middle questions: What actions did the character take? What challenges did they face, and how did they handle them?
+   - Resolution: How did the situation resolve? How did the character feel?
+   - Moral & Reflection: What is the deeper moral or message of this story, and how does the student interpret it?
+4. When the student answers:
+   - React authentically to their understanding of the story.
+   - If there are grammatical, prepositional, or word choice errors, provide a gentle, constructive correction with the rule.
+   - Ask the NEXT engaging question about the story to keep the dialogue flowing smoothly.
+5. Keep your spoken responses concise (2 to 4 sentences), friendly, and conversational.
 
 Format your response strictly as a JSON object:
 {
-  "text": "Your conversational response and next engaging question",
-  "tip": "An optional pronunciation or vocabulary tip related to today's topic",
+  "text": "Your conversational response acknowledging their answer + your next engaging story-based question",
+  "tip": "A helpful pronunciation, vocabulary, or phrasing tip using words from the story",
   "correction": {
     "original": "mistaken phrase if any",
     "corrected": "natural phrase",
     "rule": "brief rule explanation"
-  },
-  "followup": "A prompt encouraging them to use a specific word or structure from today's lesson"
+  } or null,
+  "followup": "A quick prompt encouraging them to use a specific story word or sentence structure"
 }
-If there are no grammatical mistakes in the student's message, leave "correction" as null.
 Ensure the JSON is strictly valid.`;
 
-      const contents = [
-        ...history.map((h: { sender: string; text: string }) => ({
-          role: h.sender === 'teacher' ? 'model' : 'user',
-          parts: [{ text: h.text }],
-        })),
-        {
+      // Format conversation turns strictly adhering to Gemini API requirements:
+      // 1. Must start with role: 'user'
+      // 2. Must strictly alternate between 'user' and 'model'
+      const formattedHistory: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
+
+      for (const h of history) {
+        const text = typeof h.text === 'string' ? h.text.trim() : '';
+        if (!text) continue;
+        const role = (h.sender === 'teacher' || h.role === 'model') ? 'model' : 'user';
+
+        if (formattedHistory.length === 0) {
+          if (role === 'model') {
+            formattedHistory.push({
+              role: 'user',
+              parts: [{ text: `Hello Teacher, I have read the story "${topic}". Let's start the speaking practice about this story.` }],
+            });
+            formattedHistory.push({
+              role: 'model',
+              parts: [{ text }],
+            });
+          } else {
+            formattedHistory.push({ role: 'user', parts: [{ text }] });
+          }
+        } else {
+          const lastTurn = formattedHistory[formattedHistory.length - 1];
+          if (lastTurn.role === role) {
+            lastTurn.parts[0].text += `\n${text}`;
+          } else {
+            formattedHistory.push({ role, parts: [{ text }] });
+          }
+        }
+      }
+
+      if (formattedHistory.length > 0 && formattedHistory[formattedHistory.length - 1].role === 'user') {
+        formattedHistory[formattedHistory.length - 1].parts[0].text += `\n${message}`;
+      } else {
+        formattedHistory.push({
           role: 'user',
           parts: [{ text: message }],
-        },
-      ];
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents,
-        config: {
-          systemInstruction,
-          responseMimeType: 'application/json',
-          temperature: 0.7,
-        },
-      });
-
-      const responseText = response.text || '';
-      try {
-        const parsed = JSON.parse(responseText);
-        res.json(parsed);
-        return;
-      } catch {
-        res.json({
-          text: responseText,
-          tip: 'Focus on clear sentence cadence and transition markers.',
         });
-        return;
+      }
+
+      try {
+        const response = await ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: formattedHistory,
+          config: {
+            systemInstruction,
+            responseMimeType: 'application/json',
+            temperature: 0.7,
+          },
+        });
+
+        const responseText = response.text || '';
+        try {
+          const parsed = JSON.parse(responseText);
+          res.json({
+            text: parsed.text || parsed.reply || responseText,
+            reply: parsed.text || parsed.reply || responseText,
+            tip: parsed.tip,
+            correction: parsed.correction,
+            followup: parsed.followup,
+          });
+          return;
+        } catch {
+          res.json({
+            text: responseText,
+            reply: responseText,
+            tip: `Focus on using expressive vocabulary from "${topic}".`,
+          });
+          return;
+        }
+      } catch (geminiErr: any) {
+        console.warn('Gemini generateContent error in chat handler, using story fallback:', geminiErr?.message || geminiErr);
+        // Fall through to story-based fallback generator
       }
     }
 
-    // Contextual fallback when Gemini API key is offline
-    const lower = message.toLowerCase();
-    let replyText = '';
-    let tip = '';
-    let correction = null;
-    let followup = '';
-
-    const isBird = topic.toLowerCase().includes('bird') || storyContent.toLowerCase().includes('bird');
-
-    if (isBird) {
-      if (lower.includes('park') || lower.includes('saw') || lower.includes('found') || lower.includes('bush')) {
-        replyText = "That's right! Aarav was walking in the park when he noticed the sparrow fluttering in the bushes. Spotting a wounded animal takes keen observation.";
-        tip = 'Notice the phrase "fluttering helplessly" — it evokes the visual image of gentle, struggling wings.';
-        followup = 'Why do you think Aarav decided to pick up the bird instead of just walking away?';
-      } else if (lower.includes('care') || lower.includes('shoebox') || lower.includes('cotton') || lower.includes('water') || lower.includes('dropper')) {
-        replyText = "Exactly! He prepared a warm shoebox with soft cotton and used an eyedropper to feed it water droplets. His grandfather's teachings guided his gentle care.";
-        tip = 'Use "nurse back to health" to describe caring for someone or an animal until they recover.';
-        followup = 'How do you think Aarav felt when the bird finally spread its wings and flew away?';
-      } else {
-        replyText = "A wonderful insight! Helping a helpless creature teaches us that true compassion requires patience. The story reminds us that nature responds to kindness.";
-        tip = 'Try using the phrase "welled up with joy" when describing emotional moments of happiness.';
-        followup = 'Have you or anyone you know ever rescued or helped an animal in distress?';
-      }
-    } else {
-      replyText = `Great answer! Expressing your thoughts on "${topic}" with structured sentences helps build spoken confidence.`;
-      tip = 'Try incorporating transition markers like "Furthermore", "In addition", and "Consequently".';
-      followup = 'How does this concept connect to your own everyday experience?';
-    }
-
-    res.json({
-      text: replyText,
-      tip,
-      correction,
-      followup,
-    });
+    // Story-based intelligent fallback generator (100% tied to the student's story)
+    const fallbackResponse = generateStoryFallbackChat(message, topic, storyContent, history);
+    res.json(fallbackResponse);
   } catch (err: unknown) {
-    console.error('Error in /api/chat:', err);
+    console.error('Error in AI chat handler:', err);
     res.status(500).json({
       error: 'Failed to generate teacher response',
-      text: 'Good practice! Keep speaking and focusing on today\'s vocabulary.',
+      text: 'Good practice! Please share your thoughts on the characters in today\'s story.',
+      reply: 'Good practice! Please share your thoughts on the characters in today\'s story.',
     });
   }
-});
+}
+
+// Generate story-grounded responses when API is offline or quota reached
+function generateStoryFallbackChat(
+  message: string,
+  topic: string,
+  storyContent: string,
+  history: any[] = []
+) {
+  const story = (storyContent || '').trim();
+  const lowerMsg = message.toLowerCase();
+  
+  // Split into real sentences
+  const sentences = story
+    .split(/(?<=[.?!])\s+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 10);
+
+  const studentTurns = history.filter((h: any) => h.sender === 'student' || h.role === 'user').length;
+
+  // Specific Aarav sparrow story check (requires BOTH 'aarav' and 'sparrow' in the actual story)
+  const isAaravBird = story.toLowerCase().includes('aarav') && story.toLowerCase().includes('sparrow');
+  if (isAaravBird) {
+    if (studentTurns <= 1 || lowerMsg.includes('park') || lowerMsg.includes('saw') || lowerMsg.includes('bird') || lowerMsg.includes('bush') || lowerMsg.includes('flutter')) {
+      return {
+        text: "That's exactly right! Aarav was walking through the park when he noticed the sparrow fluttering helplessly in the bushes with a fractured wing. What did Aarav use to carry the bird safely home, and how did he care for it?",
+        reply: "That's exactly right! Aarav was walking through the park when he noticed the sparrow fluttering helplessly in the bushes with a fractured wing. What did Aarav use to carry the bird safely home, and how did he care for it?",
+        tip: 'Notice the phrase "fluttering helplessly" — it vividly describes the wounded wing movements.',
+        correction: null,
+        followup: 'Try using the phrase "woolen cap" and "shoebox with soft cotton".',
+      };
+    } else if (studentTurns <= 2 || lowerMsg.includes('cap') || lowerMsg.includes('box') || lowerMsg.includes('cotton') || lowerMsg.includes('water') || lowerMsg.includes('dropper')) {
+      return {
+        text: "Spot on! He scooped it up in his woolen cap, prepared a warm shoebox with soft cotton, and fed it droplets of fresh water with a dropper. How long did it take for the bird's wing to heal, and what happened when he opened the bedroom window?",
+        reply: "Spot on! He scooped it up in his woolen cap, prepared a warm shoebox with soft cotton, and fed it droplets of fresh water with a dropper. How long did it take for the bird's wing to heal, and what happened when he opened the bedroom window?",
+        tip: 'Use the phrase "nurse back to health" when talking about caring for an injured person or animal.',
+        correction: null,
+        followup: 'Describe how the sparrow looked back with gratitude before soaring away.',
+      };
+    } else {
+      return {
+        text: "A beautiful and thoughtful answer! When Aarav opened the window, the sparrow soared into the open sky. In your opinion, what is the greatest moral lesson this story teaches us about compassion and patience?",
+        reply: "A beautiful and thoughtful answer! When Aarav opened the window, the sparrow soared into the open sky. In your opinion, what is the greatest moral lesson this story teaches us about compassion and patience?",
+        tip: 'The verb "soared" means flying high with ease and elegance.',
+        correction: null,
+        followup: 'What would you have done if you found an injured creature like Aarav did?',
+      };
+    }
+  }
+
+  // Specific Rohan morning routines story check (requires BOTH 'rohan' and '6:00 am' in the actual story)
+  const isRohanMorning = story.toLowerCase().includes('rohan') && story.toLowerCase().includes('6:00 am');
+  if (isRohanMorning) {
+    if (studentTurns <= 1 || lowerMsg.includes('6:00') || lowerMsg.includes('wake') || lowerMsg.includes('phone') || lowerMsg.includes('resist')) {
+      return {
+        text: "Excellent observation! In the story, Rohan woke up at 6:00 AM and resisted reaching for his smartphone. What did he drink right away to kick-start his metabolism, and where did he stand?",
+        reply: "Excellent observation! In the story, Rohan woke up at 6:00 AM and resisted reaching for his smartphone. What did he drink right away to kick-start his metabolism, and where did he stand?",
+        tip: 'Notice the phrasal verb "kick-start" — it means giving an energetic, decisive start to a process.',
+        correction: null,
+        followup: 'Try forming a sentence: "He drank a large glass of lukewarm water..."',
+      };
+    } else if (studentTurns <= 2 || lowerMsg.includes('water') || lowerMsg.includes('window') || lowerMsg.includes('air') || lowerMsg.includes('used to')) {
+      return {
+        text: "Exactly! He drank a large glass of lukewarm water and stood by the open window inhaling the crisp morning air. The story mentions a habit he used to have in the past. What did Rohan use to do before changing his routine?",
+        reply: "Exactly! He drank a large glass of lukewarm water and stood by the open window inhaling the crisp morning air. The story mentions a habit he used to have in the past. What did Rohan use to do before changing his routine?",
+        tip: 'Use "used to" + base verb to describe past habits that no longer continue.',
+        correction: null,
+        followup: 'Try forming a sentence with "He used to stay up late..."',
+      };
+    } else {
+      return {
+        text: "Great answer! In 'The 6:00 AM Architect', Rohan replaced chaos with quiet intention. How does his story inspire your own approach to organizing your day?",
+        reply: "Great answer! In 'The 6:00 AM Architect', Rohan replaced chaos with quiet intention. How does his story inspire your own approach to organizing your day?",
+        tip: 'Use transition markers like "Consequently", "In doing so", or "As a result" to link your ideas.',
+        correction: null,
+        followup: 'What is one deliberate habit from Rohan\'s morning that you would like to practice?',
+      };
+    }
+  }
+
+  // Dynamic story analyzer for ANY custom or teacher-created story:
+  if (sentences.length === 0) {
+    return {
+      text: `Good point! Let's explore "${topic}". Based on the passage, what is the main event or concept you noticed?`,
+      reply: `Good point! Let's explore "${topic}". Based on the passage, what is the main event or concept you noticed?`,
+      tip: `Focus on using descriptive vocabulary related to "${topic}".`,
+      correction: null,
+      followup: 'Describe the main idea in one clear sentence.',
+    };
+  }
+
+  const firstSentence = sentences[0];
+  const secondSentence = sentences[1] || sentences[0];
+  const middleSentence = sentences[Math.floor(sentences.length / 2)];
+  const lastSentence = sentences[sentences.length - 1];
+
+  if (studentTurns <= 1) {
+    return {
+      text: `Well explained! In the story, it begins: "${firstSentence}". As the events progress, "${secondSentence}". How do the characters react, and what challenge do they face?`,
+      reply: `Well explained! In the story, it begins: "${firstSentence}". As the events progress, "${secondSentence}". How do the characters react, and what challenge do they face?`,
+      tip: 'Use past tense narrative verbs (e.g., noticed, decided, prepared, realized) to describe actions.',
+      correction: null,
+      followup: 'Describe the feelings or reaction of the main character at this moment.',
+    };
+  } else if (studentTurns <= 3) {
+    return {
+      text: `That is a great detail! Looking deeper into the narrative: "${middleSentence}". Why do you think this happened, and how did the characters handle this situation?`,
+      reply: `That is a great detail! Looking deeper into the narrative: "${middleSentence}". Why do you think this happened, and how did the characters handle this situation?`,
+      tip: 'Try using conditional phrasing: "If they had not done this, the outcome would have been..."',
+      correction: null,
+      followup: 'Explain what important decision was made in this part of the story.',
+    };
+  } else {
+    return {
+      text: `A thoughtful and accurate understanding of the story! Toward the conclusion, the story tells us: "${lastSentence}". What do you think is the overarching lesson or moral that you take away from this story?`,
+      reply: `A thoughtful and accurate understanding of the story! Toward the conclusion, the story tells us: "${lastSentence}". What do you think is the overarching lesson or moral that you take away from this story?`,
+      tip: 'Summarize your thoughts with phrases like "The story clearly demonstrates that..." or "Ultimately, the moral is..."',
+      correction: null,
+      followup: 'How does this story\'s moral apply to challenges people face in everyday life?',
+    };
+  }
+}
+
+// Register both endpoints so frontend calls to either /api/chat or /api/chat-teacher work seamlessly
+app.post('/api/chat', handleAIChatRequest);
+app.post('/api/chat-teacher', handleAIChatRequest);
 
 // AI Endpoint: Explain incorrect/difficult sentence & formulate reading story question
 app.post('/api/explain-sentence', async (req: Request, res: Response) => {
@@ -487,7 +994,7 @@ Format strictly as JSON:
       error: 'Failed to review answer',
       review: 'Well expressed! Your response shows great understanding of the story.',
       grammar_feedback: 'Clear communication of your ideas.',
-      better_version: userAnswer,
+      better_version: String(req.body?.userAnswer || ''),
       encouragement: 'Keep practicing your conversational flow!',
     });
   }

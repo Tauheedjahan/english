@@ -9,7 +9,6 @@ interface SettingsScreenProps {
   onNavigateHome: () => void;
   onLoginWithGoogle: () => void;
   onSignOut: () => void;
-  onOpenAdmin: () => void;
 }
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({
@@ -20,7 +19,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
   onNavigateHome,
   onLoginWithGoogle,
   onSignOut,
-  onOpenAdmin,
 }) => {
   const [targetLevel, setTargetLevel] = useState('B1 Intermediate');
   const [dailyGoal, setDailyGoal] = useState('30 min');
@@ -230,56 +228,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
               )}
             </div>
           </div>
-
-          {/* Admin Portal Gateway */}
-          {user?.is_admin ? (
-            <div className="p-4 bg-[#E8F2EE] border border-[#1B4D3E]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-sm">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[9px] uppercase tracking-[0.25em] text-[#1B4D3E] font-bold">
-                    Administrator Panel Active
-                  </span>
-                  <span className="text-[9px] bg-[#1B4D3E]/15 text-[#1B4D3E] px-2 py-0.5 border border-[#1B4D3E]/30 font-semibold rounded-xs">
-                    tauheedjahan07@gmail.com
-                  </span>
-                </div>
-                <p className="text-xs text-[#374151]">
-                  You are authenticated as the Lead Curriculum Administrator. You have full access to author learning days, upload companion PDFs, and manage translations manually.
-                </p>
-              </div>
-              <button
-                onClick={onOpenAdmin}
-                className="bg-[#1B4D3E] hover:bg-[#153E32] text-white px-5 py-2.5 font-sans text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shrink-0 rounded-sm"
-              >
-                <span className="material-symbols-outlined text-sm">edit_note</span>
-                Open Admin Portal
-              </button>
-            </div>
-          ) : (
-            <div className="p-4 bg-[#F8FAF9] border border-[#E2E8E5] flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-sm">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="material-symbols-outlined text-xs text-[#6B7280]">lock</span>
-                  <span className="text-[9px] uppercase tracking-[0.25em] text-[#6B7280] font-bold">
-                    Curator & Admin Portal
-                  </span>
-                  <span className="text-[9px] bg-white text-[#6B7280] px-1.5 py-0.5 border border-[#E2E8E5] rounded-xs">
-                    Restricted Access
-                  </span>
-                </div>
-                <p className="text-xs text-[#6B7280]">
-                  Curriculum authoring is reserved exclusively for <strong className="text-[#111827]">tauheedjahan07@gmail.com</strong>. Log in with your email & password or Google admin account.
-                </p>
-              </div>
-              <button
-                onClick={onOpenAdmin}
-                className="bg-white hover:bg-[#F3F4F6] text-[#1B4D3E] border border-[#CBD5E1] hover:border-[#1B4D3E] px-4 py-2 font-sans text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shrink-0 rounded-sm font-semibold"
-              >
-                <span className="material-symbols-outlined text-xs">key</span>
-                Admin Login
-              </button>
-            </div>
-          )}
         </section>
 
         {/* Demo & Curriculum Navigation Quick Switcher */}

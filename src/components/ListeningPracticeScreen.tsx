@@ -81,116 +81,9 @@ export const ListeningPracticeScreen: React.FC<ListeningPracticeScreenProps> = (
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#FFFFFF] text-[#111827]">
-      {/* Workflow Navigation Bar */}
-      <header className="sticky top-0 z-30 border-b border-[#E2E8E5] px-4 md:px-12 h-18 max-w-[1200px] mx-auto w-full flex items-center justify-between bg-white/95 backdrop-blur-md">
-        <button
-          onClick={onBackToLessons}
-          className="flex items-center gap-2 text-[#4B5563] hover:text-[#1B4D3E] transition-colors cursor-pointer group"
-        >
-          <span className="material-symbols-outlined text-[18px] group-hover:-translate-x-1 transition-transform">
-            arrow_back
-          </span>
-          <span className="font-sans text-[10px] uppercase tracking-[0.25em] font-semibold">
-            Curriculum
-          </span>
-        </button>
-
-        {/* Step Indicator - Clickable cross-step navigation */}
-        <div className="flex items-center gap-1.5 md:gap-2 text-[10px] uppercase tracking-[0.2em]">
-          <span className="text-[#1B4D3E] font-bold flex items-center gap-1.5 bg-[#E8F2EE] border border-[#1B4D3E]/30 px-3 py-1 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-[#1B4D3E]"></span>
-            1. Listening
-          </span>
-          <span className="text-[#CBD5E1]">→</span>
-          <button
-            onClick={() => {
-              if (isReadingUnlocked || hasWatchedVideo) {
-                onOpenReadingPractice?.();
-              } else {
-                setModalInfo({
-                  isOpen: true,
-                  targetStepTitle: 'Step 02: Reading Guide',
-                  requiredStepTitle: 'Video Listening Session',
-                  requiredStepNumber: 1,
-                  message: 'Please complete and confirm this video listening session before advancing to Step 2 (Reading Guide).',
-                });
-              }
-            }}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
-              isReadingUnlocked || hasWatchedVideo
-                ? 'text-[#1B4D3E] hover:bg-[#E8F2EE] font-semibold'
-                : 'text-[#6B7280] hover:text-[#111827]'
-            }`}
-          >
-            {(isReadingUnlocked || hasWatchedVideo) && (
-              <span className="material-symbols-outlined text-[13px]">check</span>
-            )}
-            2. Reading
-          </button>
-          <span className="text-[#CBD5E1] hidden sm:inline">→</span>
-          <button
-            onClick={() => {
-              if (isTranslationUnlocked) {
-                onOpenTranslationPractice?.();
-              } else {
-                setModalInfo({
-                  isOpen: true,
-                  targetStepTitle: 'Step 03: Translation Sentences',
-                  requiredStepTitle: 'Reading Guide',
-                  requiredStepNumber: 2,
-                  message: 'You must complete Step 1 (Listening) and Step 2 (Reading) before starting translation sentences.',
-                });
-              }
-            }}
-            className={`hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
-              isTranslationUnlocked
-                ? 'text-[#1B4D3E] hover:bg-[#E8F2EE] font-semibold'
-                : 'text-[#6B7280] hover:text-[#111827]'
-            }`}
-          >
-            {isTranslationUnlocked && (
-              <span className="material-symbols-outlined text-[13px]">check</span>
-            )}
-            3. Translation
-          </button>
-          <span className="text-[#CBD5E1] hidden md:inline">→</span>
-          <button
-            onClick={() => {
-              if (isAIUnlocked) {
-                onOpenAIConversation?.();
-              } else {
-                setModalInfo({
-                  isOpen: true,
-                  targetStepTitle: 'Step 04: AI Conversation',
-                  requiredStepTitle: 'Sentence Translation Mastery',
-                  requiredStepNumber: 3,
-                  message: 'Please complete all translation sentences before entering the oral AI conversation.',
-                });
-              }
-            }}
-            className={`hidden md:flex items-center gap-1 px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
-              isAIUnlocked
-                ? 'text-[#1B4D3E] hover:bg-[#E8F2EE] font-semibold'
-                : 'text-[#6B7280] hover:text-[#111827]'
-            }`}
-          >
-            4. AI Conversation
-          </button>
-        </div>
-
-        {/* Edit YouTube Link Button */}
-        <button
-          onClick={() => setShowEditUrl(!showEditUrl)}
-          className="text-[10px] uppercase tracking-[0.2em] text-[#4B5563] hover:text-[#1B4D3E] border border-[#E2E8E5] hover:border-[#1B4D3E]/40 px-3.5 py-1.5 rounded-full flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-xs font-medium"
-        >
-          <span className="material-symbols-outlined text-[14px] text-[#1B4D3E]">link</span>
-          <span className="hidden sm:inline">Edit Video Link</span>
-        </button>
-      </header>
-
       {/* Edit URL Modal / Dropdown */}
       {showEditUrl && (
-        <div className="max-w-[1200px] mx-auto w-full px-4 md:px-12 mt-3 animate-fade-in z-20">
+        <div className="max-w-[1000px] mx-auto w-full px-4 md:px-12 mt-3 animate-fade-in z-20">
           <form
             onSubmit={handleSaveUrl}
             className="bg-white border border-[#1B4D3E]/40 p-4 md:p-6 shadow-[0px_8px_32px_rgba(27,77,62,0.08)] flex flex-col sm:flex-row items-center gap-4 rounded-sm"
@@ -230,14 +123,25 @@ export const ListeningPracticeScreen: React.FC<ListeningPracticeScreenProps> = (
       <main className="flex-grow w-full max-w-[1000px] mx-auto px-4 md:px-12 py-8 md:py-10 flex flex-col pb-24">
         {/* Header Section */}
         <div className="mb-8 text-center md:text-left">
-          <div className="flex items-center justify-center md:justify-start gap-2 mb-3">
-            <span className="inline-block px-3 py-1 bg-[#E8F2EE] text-[#1B4D3E] font-sans text-[9px] font-bold uppercase tracking-[0.3em] border border-[#1B4D3E]/20 rounded-xs">
-              Day {dayNumber.toString().padStart(2, '0')} // Step 1 of 4
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-[#4B5563] font-sans text-[9px] font-medium uppercase tracking-[0.3em] border border-[#E2E8E5] rounded-xs">
-              <span className="material-symbols-outlined text-[13px] text-[#1B4D3E]">headphones</span>
-              Listening Mastery
-            </span>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-block px-3 py-1 bg-[#E8F2EE] text-[#1B4D3E] font-sans text-[9px] font-bold uppercase tracking-[0.3em] border border-[#1B4D3E]/20 rounded-xs">
+                Day {dayNumber.toString().padStart(2, '0')} // Step 1 of 4
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white text-[#4B5563] font-sans text-[9px] font-medium uppercase tracking-[0.3em] border border-[#E2E8E5] rounded-xs">
+                <span className="material-symbols-outlined text-[13px] text-[#1B4D3E]">headphones</span>
+                Listening Mastery
+              </span>
+            </div>
+
+            {/* Edit YouTube Link Button */}
+            <button
+              onClick={() => setShowEditUrl(!showEditUrl)}
+              className="text-[10px] uppercase tracking-[0.2em] text-[#4B5563] hover:text-[#1B4D3E] border border-[#E2E8E5] hover:border-[#1B4D3E]/40 px-3.5 py-1.5 rounded-full flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-xs font-medium"
+            >
+              <span className="material-symbols-outlined text-[14px] text-[#1B4D3E]">link</span>
+              <span>Edit Video Link</span>
+            </button>
           </div>
 
           <h1 className="font-serif italic text-[32px] md:text-[44px] font-medium text-[#111827] mb-3">

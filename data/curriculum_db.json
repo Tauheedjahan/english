@@ -1,0 +1,33 @@
+{
+  "admin": {
+    "email": "tauheedjahan07@gmail.com",
+    "password": "admin123"
+  },
+  "days": [
+    {
+      "day_number": 1,
+      "topic": "Morning Routines & Habit Loops",
+      "youtube_url": "https://www.youtube.com/watch?v=RcGyVTAoXEU",
+      "youtube_title": "The Science of Morning Routines & Productive Habits",
+      "reading_heading": "The 6:00 AM Architect",
+      "story_content": "The dawn broke over the city in a soft wash of amber and steel-grey light. While the neighborhood was still wrapped in silence, Rohan woke up at 6:00 AM. He immediately resisted the urge to reach for his smartphone. Instead, he drank a large glass of lukewarm water to kick-start his metabolism and stood beside the open window, inhaling the crisp morning air. Over the past month, he had replaced chaos with quiet intention. He used to stay up late browsing social media, but now he prioritized physical and mental clarity. By preparing his mind and embracing challenge with courage, every morning became an architectural foundation for genuine productivity.",
+      "pdf_url": "",
+      "pdf_filename": "Day_01_Morning_Routines_Guide.pdf",
+      "lesson_context": "Focus on daily morning habits, waking up without friction, reframing stress as courage, and using verbs like wake up, kick-start, used to, and reach out.",
+      "is_published": true
+    },
+    {
+      "day_number": 2,
+      "topic": "A Boy Who Rescued an Injured Bird",
+      "youtube_url": "https://www.youtube.com/watch?v=kOuV4kKq5_I",
+      "youtube_title": "The Power of Kindness and Empathy",
+      "reading_heading": "The Injured Sparrow’s Flight",
+      "story_content": "On a brisk autumn afternoon, a ten-year-old boy named Aarav was walking through the park when he noticed something fluttering helplessly in the bushes. Moving closer, he discovered a small sparrow with a fractured wing. Remembering what his grandfather had taught him about gentle care, Aarav carefully scooped up the bird in his woolen cap and brought it home. He prepared a warm shoebox with soft cotton, fed it tiny droplets of fresh water with a dropper, and protected it from winter drafts. Over three weeks of patient nourishment, the wing slowly healed. One sunny morning, Aarav opened his bedroom window. The sparrow fluttered its wings, looked back with gratitude, and soared into the sky. Aarav realized that compassion requires patience, but its freedom brings immense joy.",
+      "pdf_url": "",
+      "pdf_filename": "Day_02_Rescuing_Injured_Bird.pdf",
+      "lesson_context": "Story about Aarav, empathy, nursing an injured sparrow back to health, feeding it with a dropper, and releasing it into the sky.",
+      "is_published": true
+    }
+  ],
+  "sentences": []
+}

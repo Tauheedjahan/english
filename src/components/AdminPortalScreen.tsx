@@ -110,7 +110,9 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
     }
   };
 
-  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+  const [isGeneratingSentences, setIsGeneratingSentences] = useState(false);
+
+  const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setChangePasswordError(null);
 
@@ -124,6 +126,22 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
       return;
     }
 
+    try {
+      const token = localStorage.getItem('admin_session_token') || '';
+      const adminSecret = localStorage.getItem('admin_portal_custom_password') || 'admin123';
+      await fetch('/api/admin/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': token,
+          'x-admin-secret': adminSecret,
+        },
+        body: JSON.stringify({ newPassword: newPasswordInput.trim() }),
+      });
+    } catch (err) {
+      console.warn('Server password update note:', err);
+    }
+
     setStoredAdminPassword(newPasswordInput);
     setChangePasswordSuccess(true);
     setTimeout(() => {
@@ -133,6 +151,41 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
       setConfirmPasswordInput('');
       showNotice('success', 'Admin password updated successfully!');
     }, 1500);
+  };
+
+  const handleGenerateSentencesWithAI = async () => {
+    setIsGeneratingSentences(true);
+    try {
+      const token = localStorage.getItem('admin_session_token') || '';
+      const adminSecret = localStorage.getItem('admin_portal_custom_password') || 'admin123';
+      const res = await fetch('/api/admin/generate-sentences', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token': token,
+          'x-admin-secret': adminSecret,
+        },
+        body: JSON.stringify({
+          dayNumber: selectedDayNumber,
+          topic: topic || youtubeTitle || `Day ${selectedDayNumber}`,
+          youtubeUrl,
+          youtubeTitle,
+          storyContent,
+          lessonContext,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.sentences) && data.sentences.length > 0) {
+        setSentences(data.sentences);
+        showNotice('success', `Generated ${data.sentences.length} sentences for Day ${selectedDayNumber}!`);
+      } else {
+        showNotice('error', data.error || 'Failed to generate sentences.');
+      }
+    } catch (err: any) {
+      showNotice('error', 'Error generating sentences with AI.');
+    } finally {
+      setIsGeneratingSentences(false);
+    }
   };
 
   const loadDays = async () => {
@@ -915,14 +968,36 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
                 </span>
               </div>
 
-              {/* Add Sentence Button */}
-              <button
-                onClick={handleAddSentence}
-                className="bg-[#1B4D3E] hover:bg-[#153E32] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer rounded-sm shadow-xs"
-              >
-                <span className="material-symbols-outlined text-sm">add_circle</span>
-                Add Sentence
-              </button>
+              {/* Buttons */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={handleGenerateSentencesWithAI}
+                  disabled={isGeneratingSentences}
+                  className="bg-white hover:bg-[#F3F4F6] text-[#1B4D3E] border border-[#1B4D3E]/30 px-3 py-2 text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer rounded-sm disabled:opacity-50"
+                  title="Generate 30 Progressive Translation Sentences based on story content using AI"
+                >
+                  {isGeneratingSentences ? (
+                    <>
+                      <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-sm">smart_toy</span>
+                      AI Sentences
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={handleAddSentence}
+                  className="bg-[#1B4D3E] hover:bg-[#153E32] text-white px-4 py-2 text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer rounded-sm shadow-xs"
+                >
+                  <span className="material-symbols-outlined text-sm">add_circle</span>
+                  Add Sentence
+                </button>
+              </div>
             </div>
 
             {sentences.length === 0 ? (

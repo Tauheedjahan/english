@@ -321,76 +321,6 @@ export const TranslationScreen: React.FC<TranslationScreenProps> = ({
 
   return (
     <div className="min-h-screen flex flex-col font-sans bg-[#FFFFFF] text-[#111827]">
-      {/* Workflow Header Bar */}
-      <header className="sticky top-0 z-30 border-b border-[#E2E8E5] px-4 md:px-12 h-18 max-w-[1200px] mx-auto w-full flex items-center justify-between bg-white/95 backdrop-blur-md">
-        <button
-          onClick={onBackToLessons}
-          className="flex items-center gap-2 text-[#4B5563] hover:text-[#1B4D3E] transition-colors cursor-pointer group"
-        >
-          <span className="material-symbols-outlined text-[18px] group-hover:-translate-x-1 transition-transform">
-            arrow_back
-          </span>
-          <span className="font-sans text-[10px] uppercase tracking-[0.25em] font-semibold">
-            Curriculum
-          </span>
-        </button>
-
-        {/* Step Indicator - Clickable cross-step navigation */}
-        <div className="flex items-center gap-1.5 md:gap-2 text-[10px] uppercase tracking-[0.2em]">
-          <button
-            onClick={onOpenListeningPractice}
-            className="text-[#1B4D3E] hover:bg-[#E8F2EE] flex items-center gap-1 font-semibold px-2.5 py-1 rounded-full transition-colors cursor-pointer"
-            title="Return to Video Listening"
-          >
-            <span className="material-symbols-outlined text-[14px]">check</span>
-            <span className="hidden sm:inline">1. Listening</span>
-          </button>
-          <span className="text-[#CBD5E1]">→</span>
-          <button
-            onClick={onOpenReadingPractice}
-            className="text-[#1B4D3E] hover:bg-[#E8F2EE] flex items-center gap-1 font-semibold px-2.5 py-1 rounded-full transition-colors cursor-pointer"
-            title="Return to Companion Reading Guide"
-          >
-            <span className="material-symbols-outlined text-[14px]">check</span>
-            <span className="hidden sm:inline">2. Reading</span>
-          </button>
-          <span className="text-[#CBD5E1]">→</span>
-          <span className="text-[#1B4D3E] font-bold flex items-center gap-1.5 bg-[#E8F2EE] border border-[#1B4D3E]/30 px-3 py-1 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-[#1B4D3E]"></span>
-            3. Translation
-          </span>
-          <span className="text-[#CBD5E1]">→</span>
-          <button
-            onClick={() => {
-              if (isAllCompleted || isAIDone) {
-                onOpenAIConversation?.();
-              } else {
-                setShowRestrictionModal(true);
-              }
-            }}
-            className={`hidden md:flex items-center gap-1 px-2.5 py-1 rounded-full transition-colors cursor-pointer ${
-              isAllCompleted || isAIDone
-                ? 'text-[#1B4D3E] hover:bg-[#E8F2EE] font-semibold'
-                : 'text-[#6B7280] hover:text-[#111827]'
-            }`}
-          >
-            {(isAllCompleted || isAIDone) && (
-              <span className="material-symbols-outlined text-[13px]">check</span>
-            )}
-            4. AI Conversation
-          </button>
-        </div>
-
-        {/* Sentence Grid Selector Button */}
-        <button
-          onClick={() => setShowNavigatorModal(true)}
-          className="text-[10px] uppercase tracking-[0.2em] text-[#4B5563] hover:text-[#1B4D3E] border border-[#E2E8E5] hover:border-[#1B4D3E]/40 px-3.5 py-1.5 rounded-full flex items-center gap-1.5 transition-colors cursor-pointer bg-white shadow-xs font-semibold"
-        >
-          <span className="material-symbols-outlined text-[14px] text-[#1B4D3E]">format_list_numbered</span>
-          <span>{totalCompleted} / {totalSentences}</span>
-        </button>
-      </header>
-
       {/* Navigator Modal */}
       {showNavigatorModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
@@ -472,9 +402,16 @@ export const TranslationScreen: React.FC<TranslationScreenProps> = ({
               <span className="text-[#1B4D3E]">
                 Sentence {currentIndex + 1} of {totalSentences}
               </span>
-              <span>
-                {totalCompleted} Completed ({Math.round((totalCompleted / totalSentences) * 100)}%)
-              </span>
+              <button
+                onClick={() => setShowNavigatorModal(true)}
+                className="flex items-center gap-1.5 hover:text-[#1B4D3E] cursor-pointer transition-colors"
+                title="Open Sentence Directory"
+              >
+                <span>
+                  {totalCompleted} / {totalSentences} Completed ({Math.round((totalCompleted / totalSentences) * 100)}%)
+                </span>
+                <span className="material-symbols-outlined text-[14px]">format_list_numbered</span>
+              </button>
             </div>
             <div className="w-full bg-[#E5E7EB] h-[4px] rounded-full overflow-hidden">
               <div
