@@ -94,11 +94,6 @@ export const Navigation: React.FC<NavigationProps> = ({
                   <span className="text-xs text-[#111827] font-medium max-w-[120px] truncate font-sans">
                     {user.full_name}
                   </span>
-                  {user.is_admin && (
-                    <span className="text-[9px] uppercase tracking-wider text-[#1B4D3E] font-bold bg-[#E8F2EE] px-2 py-0.5 rounded-xs border border-[#1B4D3E]/30">
-                      Admin
-                    </span>
-                  )}
                 </div>
 
                 <button

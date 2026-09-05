@@ -39,16 +39,17 @@ import {
 
 function getScreenFromLocation(): ScreenView {
   if (typeof window === 'undefined') return 'home';
-  const path = window.location.pathname.toLowerCase();
-  const hash = window.location.hash.toLowerCase();
-  if (path === '/admin/login' || hash === '#/admin/login') return 'admin_login';
-  if (path === '/admin' || hash === '#/admin') return 'admin';
+  const path = window.location.pathname.toLowerCase().replace(/\/+$/, '');
+  const hash = window.location.hash.toLowerCase().replace(/\/+$/, '');
+  if (path === '/admin/login' || hash === '#/admin/login' || hash === '#admin/login') return 'admin_login';
+  if (path === '/admin' || hash === '#/admin' || hash === '#admin') return 'admin';
   return 'home';
 }
 
 export function App() {
   const [currentTab, setCurrentTab] = useState<TabType>('home');
   const [currentScreen, setCurrentScreen] = useState<ScreenView>(() => getScreenFromLocation());
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
 
   // Helper to change screen and keep URL path synchronized
   const navigateTo = useCallback((screen: ScreenView) => {
@@ -57,7 +58,9 @@ export function App() {
       let targetPath = '/';
       if (screen === 'admin') targetPath = '/admin';
       else if (screen === 'admin_login') targetPath = '/admin/login';
-      if (window.location.pathname !== targetPath && (targetPath !== '/' || window.location.pathname.startsWith('/admin'))) {
+      const currentPath = window.location.pathname.toLowerCase().replace(/\/+$/, '') || '/';
+      const cleanTarget = targetPath.toLowerCase().replace(/\/+$/, '') || '/';
+      if (currentPath !== cleanTarget || window.location.hash) {
         window.history.pushState(null, '', targetPath);
       }
     }
@@ -105,36 +108,60 @@ export function App() {
   // 1. Initialize User Profile from Supabase / Session / Admin Token
   useEffect(() => {
     const initAuth = async () => {
-      const currentUser = await getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
-        return;
-      }
-      // Check stored admin session
-      const adminToken = localStorage.getItem('admin_session_token');
-      if (adminToken) {
-        try {
-          const res = await fetch('/api/admin/verify', {
-            headers: { 'x-admin-token': adminToken },
-          });
-          const data = await res.json();
-          if (data.authenticated && data.user) {
-            setUser({
-              id: data.user.id,
-              email: data.user.email,
-              full_name: data.user.full_name,
-              is_admin: true,
-            });
-            return;
-          }
-        } catch {
-          // Ignore
+      try {
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          return;
         }
+        // Check stored admin session
+        const adminToken = localStorage.getItem('admin_session_token');
+        if (adminToken) {
+          try {
+            const res = await fetch('/api/admin/verify', {
+              headers: { 'x-admin-token': adminToken },
+            });
+            const data = await res.json();
+            if (data.authenticated && data.user) {
+              setUser({
+                id: data.user.id,
+                email: data.user.email,
+                full_name: data.user.full_name,
+                is_admin: true,
+              });
+              return;
+            }
+          } catch {
+            // Ignore
+          }
+        }
+        setUser(null);
+      } finally {
+        setAuthLoading(false);
       }
-      setUser(null);
     };
     initAuth();
   }, []);
+
+  const isAdminUser = Boolean(
+    user && (user.is_admin || user.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  );
+
+  // Automated route protection and redirection for /admin and /admin/login
+  useEffect(() => {
+    if (authLoading) return;
+    if (currentScreen === 'admin') {
+      if (!user) {
+        // Not logged in -> redirect to /admin/login
+        navigateTo('admin_login');
+      }
+    } else if (currentScreen === 'admin_login') {
+      if (isAdminUser) {
+        // Already authenticated admin -> redirect to /admin dashboard
+        navigateTo('admin');
+      }
+    }
+  }, [authLoading, currentScreen, user, isAdminUser, navigateTo]);
 
   // 2. Load Published Curriculum Days from Supabase
   const loadCurriculumDays = useCallback(async () => {
@@ -244,10 +271,6 @@ export function App() {
     setUser(null);
     loadDayAndProgress(currentDay, 'guest-learner-id');
   };
-
-  const isAdminUser = Boolean(
-    user && (user.is_admin || user.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase())
-  );
 
   const handleSelectTab = (tab: TabType) => {
     if (tab === 'ai_teacher') {
@@ -719,7 +742,14 @@ export function App() {
 
         {/* Dedicated /admin Section with strict Role-Based Access Control */}
         {currentScreen === 'admin' && (
-          isAdminUser ? (
+          authLoading ? (
+            <div className="min-h-screen bg-[#F4F7F5] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-xs uppercase tracking-widest text-[#6B7280]">Verifying credentials...</span>
+              </div>
+            </div>
+          ) : isAdminUser ? (
             <AdminPortalScreen
               user={user}
               onAdminLoginSuccess={(adminUser) => {
@@ -738,7 +768,7 @@ export function App() {
               }}
             />
           ) : user ? (
-            /* Normal users are blocked even if they manually enter the admin URL */
+            /* Logged-in non-admin -> 403 Forbidden */
             <AdminAccessBlockedScreen
               currentUser={user}
               onNavigateHome={() => navigateTo('home')}
@@ -749,40 +779,32 @@ export function App() {
               }}
             />
           ) : (
-            /* Unauthenticated users attempting /admin are prompted to log in */
-            <AdminLoginScreen
-              currentUser={user}
-              onLoginSuccess={(adminUser) => {
-                setUser(adminUser);
-                loadCurriculumDays();
-                navigateTo('admin');
-              }}
-              onNavigateHome={() => navigateTo('home')}
-              onLoginWithGoogle={handleLoginWithGoogle}
-            />
+            /* Unauthenticated visitor -> redirecting to /admin/login */
+            <div className="min-h-screen bg-[#F4F7F5] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-xs uppercase tracking-widest text-[#6B7280]">Redirecting to /admin/login...</span>
+              </div>
+            </div>
           )
         )}
 
         {/* Dedicated /admin/login Route */}
         {currentScreen === 'admin_login' && (
-          isAdminUser ? (
-            <AdminPortalScreen
-              user={user}
-              onAdminLoginSuccess={(adminUser) => {
-                setUser(adminUser);
-                loadCurriculumDays();
-              }}
-              onAdminSignOut={async () => {
-                await handleSignOut();
-                navigateTo('admin_login');
-              }}
-              onBackToApp={() => navigateTo('home')}
-              onDayPublished={async (dayNum) => {
-                await loadCurriculumDays();
-                setCurrentDay(dayNum);
-                navigateTo('home');
-              }}
-            />
+          authLoading ? (
+            <div className="min-h-screen bg-[#F4F7F5] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-xs uppercase tracking-widest text-[#6B7280]">Checking session...</span>
+              </div>
+            </div>
+          ) : isAdminUser ? (
+            <div className="min-h-screen bg-[#F4F7F5] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 border-2 border-[#1B4D3E] border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-xs uppercase tracking-widest text-[#6B7280]">Redirecting to admin dashboard...</span>
+              </div>
+            </div>
           ) : (
             <AdminLoginScreen
               currentUser={user}

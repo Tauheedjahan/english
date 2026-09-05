@@ -168,15 +168,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                     </div>
                   )}
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-[#111827]">{user.full_name}</span>
-                      {user.is_admin && (
-                        <span className="text-[9px] uppercase tracking-wider text-[#1B4D3E] font-bold bg-[#E8F2EE] px-2 py-0.5 border border-[#1B4D3E]/40 rounded-xs">
-                          Curriculum Admin
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-xs text-[#6B7280]">{user.email}</span>
+                    <span className="text-sm font-semibold text-[#111827]">{user.full_name}</span>
+                    <span className="block text-xs text-[#6B7280]">{user.email}</span>
                     <p className="text-[11px] text-[#1B4D3E] mt-0.5 font-medium">
                       ✓ Progress automatically synchronized
                     </p>
