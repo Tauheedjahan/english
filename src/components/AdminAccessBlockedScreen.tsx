@@ -24,18 +24,13 @@ export const AdminAccessBlockedScreen: React.FC<AdminAccessBlockedScreenProps> =
           <span className="material-symbols-outlined text-sm">arrow_back</span>
           <span>Return to Public App</span>
         </button>
-        <span className="text-[11px] uppercase tracking-[0.25em] font-mono font-bold text-[#1B4D3E] bg-white px-3 py-1 border border-[#E2E8E5] rounded-xs shadow-xs">
-          ADMIN PANEL
-        </span>
       </div>
 
       <div className="w-full max-w-md bg-white border border-[#E2E8E5] rounded-sm shadow-sm p-8 text-center">
         {/* Top Header Badge */}
         <div className="inline-flex items-center gap-2 mb-4 px-3 py-1 bg-[#F4F7F5] border border-[#E2E8E5] rounded-xs">
           <span className="w-2 h-2 rounded-full bg-[#1B4D3E]"></span>
-          <span className="text-[11px] uppercase tracking-[0.2em] font-bold text-[#1B4D3E]">
-            ADMIN PANEL
-          </span>
+          
         </div>
 
         <h1 className="font-serif italic text-2xl md:text-3xl font-medium text-[#111827] mb-3">
