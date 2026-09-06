@@ -485,25 +485,78 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
     const local = localStorage.getItem(STORAGE_USER_KEY);
     if (local) {
       const parsed = JSON.parse(local);
-      if (isAuthorizedAdminEmail(parsed.email)) {
-        parsed.is_admin = true;
+      if (parsed && parsed.email) {
+        // Clean up legacy placeholder emails if previously saved
+        if (parsed.email === 'learner.google@gmail.com' || parsed.email === 'learner@example.com') {
+          localStorage.removeItem(STORAGE_USER_KEY);
+          return null;
+        }
+        if (isAuthorizedAdminEmail(parsed.email)) {
+          parsed.is_admin = true;
+        }
+        return parsed;
       }
-      return parsed;
     }
   } catch {}
 
-  // Default guest user
-  const guest: UserProfile = {
-    id: 'guest-learner-id',
-    email: 'learner@example.com',
-    full_name: 'English Learner',
-    avatar_url: '',
-    is_admin: false,
-  };
-  return guest;
+  // No authenticated user stored; return null so the app stays in guest mode with active "Sign in" option
+  return null;
 }
 
-export async function signInWithGoogle(): Promise<{ error: Error | null; user?: UserProfile }> {
+/**
+ * Sign in as a learner with any personal Gmail or email address
+ */
+export async function signInAsLearner(
+  email: string,
+  fullName?: string
+): Promise<{ error: Error | null; user?: UserProfile }> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    return { error: new Error('Please enter a valid email address.') };
+  }
+
+  const isUserAdmin = isAuthorizedAdminEmail(cleanEmail);
+  const derivedName =
+    fullName?.trim() ||
+    (isUserAdmin
+      ? 'Tauheed Jahan'
+      : cleanEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
+
+  const learnerUser: UserProfile = {
+    id: `user-${cleanEmail.replace(/[^a-z0-9]/g, '_')}`,
+    email: cleanEmail,
+    full_name: derivedName,
+    avatar_url: isUserAdmin
+      ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'
+      : '',
+    is_admin: isUserAdmin,
+    created_at: new Date().toISOString(),
+  };
+
+  localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(learnerUser));
+  localStorage.setItem('last_learner_email', cleanEmail);
+
+  if (isUserAdmin) {
+    const token = 'admin-session-' + Date.now();
+    localStorage.setItem('admin_session_token', token);
+  }
+
+  return { error: null, user: learnerUser };
+}
+
+export async function signInWithGoogle(
+  preferredEmail?: string,
+  preferredName?: string
+): Promise<{ error: Error | null; user?: UserProfile }> {
+  const targetEmail =
+    (preferredEmail && preferredEmail.trim()) ||
+    localStorage.getItem('last_learner_email') ||
+    ADMIN_EMAIL;
+
+  const targetName =
+    preferredName ||
+    (targetEmail === ADMIN_EMAIL ? 'Tauheed Jahan' : undefined);
+
   if (supabase) {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -518,32 +571,14 @@ export async function signInWithGoogle(): Promise<{ error: Error | null; user?: 
       });
       if (error) throw error;
       const user = await getCurrentUser();
-      return { error: null, user };
+      if (user) return { error: null, user };
     } catch (err: any) {
-      console.warn('Supabase Google OAuth trigger error:', err);
-      // Fallback to demo Google session if project OAuth is not configured yet
-      const demoUser: UserProfile = {
-        id: `user-${Date.now()}`,
-        email: 'learner.google@gmail.com',
-        full_name: 'Learner (Google)',
-        avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-        is_admin: false,
-      };
-      localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(demoUser));
-      return { error: null, user: demoUser };
+      console.warn('Supabase Google OAuth trigger notice:', err);
     }
   }
 
-  // Local demo login
-  const demoUser: UserProfile = {
-    id: 'google-learner-001',
-    email: 'learner.google@gmail.com',
-    full_name: 'Learner (Google)',
-    avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-    is_admin: false,
-  };
-  localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(demoUser));
-  return { error: null, user: demoUser };
+  // Instant local/session sign in with target Gmail
+  return signInAsLearner(targetEmail, targetName);
 }
 
 /**

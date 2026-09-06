@@ -25,6 +25,7 @@ import { AdminLoginScreen } from './components/AdminLoginScreen';
 import { AdminAccessBlockedScreen } from './components/AdminAccessBlockedScreen';
 import { StepRestrictionModal } from './components/StepRestrictionModal';
 import { CurriculumStepSubMenu } from './components/CurriculumStepSubMenu';
+import { LearnerSignInModal } from './components/LearnerSignInModal';
 import {
   getCurrentUser,
   signInWithGoogle,
@@ -93,6 +94,7 @@ export function App() {
   const [userScore, setUserScore] = useState<number>(94);
   const [completedSentenceIds, setCompletedSentenceIds] = useState<number[]>([]);
   const [lessonSteps, setLessonSteps] = useState<LessonStep[]>(INITIAL_LESSON_STEPS);
+  const [isSignInModalOpen, setIsSignInModalOpen] = useState<boolean>(false);
   const [globalRestrictionModal, setGlobalRestrictionModal] = useState<{
     isOpen: boolean;
     targetStepTitle: string;
@@ -252,13 +254,14 @@ export function App() {
   }, [currentDay, user, loadDayAndProgress]);
 
   // Auth Action Handlers
-  const handleLoginWithGoogle = async () => {
-    const { user: loggedInUser, error } = await signInWithGoogle();
-    if (!error && loggedInUser) {
-      setUser(loggedInUser);
-      // Restore user progress for this user
-      loadDayAndProgress(currentDay, loggedInUser.id);
-    }
+  const handleOpenSignInModal = () => {
+    setIsSignInModalOpen(true);
+  };
+
+  const handleLearnerSignInSuccess = (loggedInUser: UserProfile) => {
+    setUser(loggedInUser);
+    loadDayAndProgress(currentDay, loggedInUser.id);
+    setIsSignInModalOpen(false);
   };
 
   const handleSignOut = async () => {
@@ -576,7 +579,7 @@ export function App() {
           user={user}
           onSelectTab={handleSelectTab}
           onOpenSettings={() => handleSelectTab('settings')}
-          onLoginWithGoogle={handleLoginWithGoogle}
+          onLoginWithGoogle={handleOpenSignInModal}
           onSignOut={handleSignOut}
         />
       )}
@@ -735,7 +738,7 @@ export function App() {
             user={user}
             onSetDayState={handleSetDayState}
             onNavigateHome={() => handleSelectTab('home')}
-            onLoginWithGoogle={handleLoginWithGoogle}
+            onLoginWithGoogle={handleOpenSignInModal}
             onSignOut={handleSignOut}
           />
         )}
@@ -814,7 +817,7 @@ export function App() {
                 navigateTo('admin');
               }}
               onNavigateHome={() => navigateTo('home')}
-              onLoginWithGoogle={handleLoginWithGoogle}
+              onLoginWithGoogle={handleOpenSignInModal}
             />
           )
         )}
@@ -832,6 +835,14 @@ export function App() {
           onGoToRequired={globalRestrictionModal.onGoToRequired}
         />
       )}
+
+      {/* Dedicated Learner Sign In Modal */}
+      <LearnerSignInModal
+        isOpen={isSignInModalOpen}
+        onClose={() => setIsSignInModalOpen(false)}
+        onSignInSuccess={handleLearnerSignInSuccess}
+        initialEmail={user?.email || ''}
+      />
     </div>
   );
 }
