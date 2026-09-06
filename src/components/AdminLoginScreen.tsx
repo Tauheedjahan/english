@@ -63,6 +63,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
 
       if (res.ok && data.success && data.token) {
         localStorage.setItem('admin_session_token', data.token);
+
         localStorage.setItem(
           'admin_portal_custom_password',
           cleanPassword
@@ -293,36 +294,23 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
 
   return (
     <main className="min-h-screen bg-[#F4F7F5] flex flex-col justify-center items-center px-4 py-12">
-      {/* Top Header & Return to Public App */}
-    <div className="w-full max-w-md mb-6">
-      <button
-    onClick={onNavigateHome}
-    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4B5563] hover:text-[#1B4D3E] transition-colors cursor-pointer"
-  >
-    <span className="material-symbols-outlined text-sm">
-      arrow_back
-    </span>
 
-    <span>Return to Public App</span>
-  </button>
-</div>
+      {/* Return to Public App */}
+      <div className="w-full max-w-md mb-6">
+        <button
+          onClick={onNavigateHome}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4B5563] hover:text-[#1B4D3E] transition-colors cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-sm">
+            arrow_back
+          </span>
 
+          <span>Return to Public App</span>
+        </button>
+      </div>
+
+      {/* Admin Login Card */}
       <div className="w-full max-w-md bg-white border border-[#E2E8E5] rounded-sm shadow-sm p-8">
-        {/* Top Header Badge */}
-        <div className="w-full max-w-md mb-6">
-  <button
-    onClick={onNavigateHome}
-    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4B5563] hover:text-[#1B4D3E] transition-colors cursor-pointer"
-  >
-    <span className="material-symbols-outlined text-sm">
-      arrow_back
-    </span>
-
-    <span>Return to Public App</span>
-  </button>
-</div>
-
-<div className="w-full max-w-md bg-white border border-[#E2E8E5] rounded-sm shadow-sm p-8">
 
         <h1 className="font-serif italic text-2xl md:text-3xl font-medium text-[#111827] mb-2">
           {isResetMode
@@ -367,6 +355,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
             onSubmit={handleAdminSubmit}
             className="space-y-4"
           >
+            {/* Administrator Email */}
             <div>
               <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151] mb-1.5">
                 Administrator Email
@@ -377,7 +366,9 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) =>
+                    setEmail(e.target.value)
+                  }
                   placeholder="Enter administrator email"
                   className="w-full bg-[#F8FAF9] border border-[#CBD5E1] px-3.5 py-2.5 text-xs text-[#111827] font-mono focus:border-[#1B4D3E] focus:bg-white focus:outline-none rounded-sm transition-colors"
                 />
@@ -388,6 +379,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
               </div>
             </div>
 
+            {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151]">
@@ -425,6 +417,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
               </div>
             </div>
 
+            {/* Login Button */}
             <button
               type="submit"
               disabled={loading}
@@ -468,6 +461,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
             onSubmit={handlePasswordSetup}
             className="space-y-4"
           >
+            {/* Administrator Email */}
             <div>
               <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151] mb-1.5">
                 Administrator Email
@@ -485,6 +479,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
               />
             </div>
 
+            {/* Current Password */}
             <div>
               <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151] mb-1.5">
                 Current Password{' '}
@@ -504,6 +499,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
               />
             </div>
 
+            {/* New Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151]">
@@ -541,6 +537,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
               />
             </div>
 
+            {/* Confirm Password */}
             <div>
               <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151] mb-1.5">
                 Confirm New Password
@@ -562,6 +559,7 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
               />
             </div>
 
+            {/* Action Buttons */}
             <div className="flex gap-2.5 pt-2">
               <button
                 type="button"
