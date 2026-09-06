@@ -237,11 +237,11 @@ export function App() {
       // Load persistent user progress from Supabase
       const prog = await fetchUserProgress(userId, dayNum);
       if (prog) {
-        setCompletedSentenceIds(prog.completed_sentence_ids || []);
-        setDay1Completed(prog.day_completed);
-        setUserScore(prog.score || 94);
+        setCompletedSentenceIds(Array.isArray(prog.completed_sentence_ids) ? prog.completed_sentence_ids : []);
+        setDay1Completed(Boolean(prog.day_completed));
+        setUserScore(typeof prog.score === 'number' ? prog.score : 0);
 
-        // Synchronize Stepper state
+        // Synchronize Stepper state strictly for this user
         setLessonSteps([
           {
             id: 1,
@@ -249,7 +249,7 @@ export function App() {
             title: 'Native Speaker Listening Analysis',
             type: 'listening',
             duration: '08 mins',
-            completed: prog.listening_completed,
+            completed: Boolean(prog.listening_completed),
             active: !prog.listening_completed,
             locked: false,
           },
@@ -259,8 +259,8 @@ export function App() {
             title: 'Companion PDF & Thematic Reading',
             type: 'reading',
             duration: '12 mins',
-            completed: prog.reading_completed,
-            active: prog.listening_completed && !prog.reading_completed,
+            completed: Boolean(prog.reading_completed),
+            active: Boolean(prog.listening_completed && !prog.reading_completed),
             locked: !prog.listening_completed,
           },
           {
@@ -269,8 +269,8 @@ export function App() {
             title: 'Sentence Translation Mastery',
             type: 'translation',
             duration: '25 mins',
-            completed: prog.translation_completed,
-            active: prog.reading_completed && !prog.translation_completed,
+            completed: Boolean(prog.translation_completed),
+            active: Boolean(prog.reading_completed && !prog.translation_completed),
             locked: !prog.reading_completed,
           },
           {
@@ -279,21 +279,31 @@ export function App() {
             title: 'Oral AI Dialogue & Pronunciation Feedback',
             type: 'speaking',
             duration: '15 mins',
-            completed: prog.ai_conversation_completed,
-            active: prog.translation_completed && !prog.ai_conversation_completed,
+            completed: Boolean(prog.ai_conversation_completed),
+            active: Boolean(prog.translation_completed && !prog.ai_conversation_completed),
             locked: !prog.translation_completed,
           },
         ]);
+      } else {
+        // Clean default starting state for a new user with no previous records
+        setCompletedSentenceIds([]);
+        setDay1Completed(false);
+        setUserScore(0);
+        setLessonSteps(INITIAL_LESSON_STEPS);
       }
     } catch (e) {
       console.warn('Error loading day data/progress:', e);
+      setCompletedSentenceIds([]);
+      setDay1Completed(false);
+      setUserScore(0);
+      setLessonSteps(INITIAL_LESSON_STEPS);
     }
   }, []);
 
   useEffect(() => {
     const userId = user?.id || 'guest-learner-id';
     loadDayAndProgress(currentDay, userId);
-  }, [currentDay, user, loadDayAndProgress]);
+  }, [currentDay, user?.id, loadDayAndProgress]);
 
   // Auth Action Handlers
   const handleOpenSignInModal = () => {
@@ -301,6 +311,12 @@ export function App() {
   };
 
   const handleLearnerSignInSuccess = (loggedInUser: UserProfile) => {
+    // Immediately clear in-memory state so previous user's data is never displayed
+    setCompletedSentenceIds([]);
+    setDay1Completed(false);
+    setUserScore(0);
+    setLessonSteps(INITIAL_LESSON_STEPS);
+
     setUser(loggedInUser);
     loadDayAndProgress(currentDay, loggedInUser.id);
     setIsSignInModalOpen(false);
@@ -313,6 +329,10 @@ export function App() {
       await fetch('/api/admin/logout', { method: 'POST' });
     } catch {}
     await signOut();
+    setCompletedSentenceIds([]);
+    setDay1Completed(false);
+    setUserScore(0);
+    setLessonSteps(INITIAL_LESSON_STEPS);
     setUser(null);
     loadDayAndProgress(currentDay, 'guest-learner-id');
   };

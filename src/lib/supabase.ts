@@ -608,6 +608,12 @@ export async function signInWithGoogle(
     targetAvatar = accountHint.avatar;
   }
 
+  // If a specific Gmail address was provided (e.g. user switching or entering a different account),
+  // sign in directly with that specific account and store its own session
+  if (targetEmail) {
+    return signInAsLearner(targetEmail, targetName);
+  }
+
   // 1. Attempt direct Supabase Google OAuth via popup window
   if (supabase) {
     try {
@@ -668,54 +674,8 @@ export async function signInWithGoogle(
     }
   }
 
-  // 2. Direct authenticated Google user retrieval (without asking for email or name manually)
-  const resolvedEmail =
-    targetEmail ||
-    localStorage.getItem('last_learner_email') ||
-    'tauheedjahan07@gmail.com';
-
-  const isUserAdmin = isAuthorizedAdminEmail(resolvedEmail);
-  const derivedName =
-    targetName ||
-    (isUserAdmin
-      ? 'Tauheed Jahan'
-      : resolvedEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
-
-  const learnerUser: UserProfile = {
-    id: `user-${resolvedEmail.replace(/[^a-z0-9]/g, '_')}`,
-    email: resolvedEmail,
-    full_name: derivedName,
-    avatar_url:
-      targetAvatar ||
-      (isUserAdmin
-        ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'
-        : ''),
-    is_admin: isUserAdmin,
-    created_at: new Date().toISOString(),
-  };
-
-  localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(learnerUser));
-  localStorage.setItem('last_learner_email', resolvedEmail);
-
-  if (supabase) {
-    try {
-      await supabase.from('profiles').upsert(
-        {
-          id: learnerUser.id,
-          email: resolvedEmail,
-          full_name: derivedName,
-          avatar_url: learnerUser.avatar_url,
-          is_admin: isUserAdmin,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'id' }
-      );
-    } catch (profileErr) {
-      console.warn('Supabase profile sync note:', profileErr);
-    }
-  }
-
-  return { error: null, user: learnerUser };
+  // If no email was provided and popup closed, prompt for the specific Gmail address
+  return { error: new Error('Please enter your Gmail address to continue.') };
 }
 
 /**
