@@ -294,22 +294,19 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
   return (
     <main className="min-h-screen bg-[#F4F7F5] flex flex-col justify-center items-center px-4 py-12">
       {/* Top Header & Return to Public App */}
-      <div className="w-full max-w-md mb-6 flex items-center justify-between">
-        <button
-          onClick={onNavigateHome}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4B5563] hover:text-[#1B4D3E] transition-colors cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-sm">
-            arrow_back
-          </span>
+      {/* Top Header & Return to Public App */}
+<div className="w-full max-w-md mb-6">
+  <button
+    onClick={onNavigateHome}
+    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4B5563] hover:text-[#1B4D3E] transition-colors cursor-pointer"
+  >
+    <span className="material-symbols-outlined text-sm">
+      arrow_back
+    </span>
 
-          <span>Return to Public App</span>
-        </button>
-
-        <span className="text-[11px] uppercase tracking-[0.25em] font-mono font-bold text-[#1B4D3E] bg-white px-3 py-1 border border-[#E2E8E5] rounded-xs shadow-xs">
-          ADMIN PANEL
-        </span>
-      </div>
+    <span>Return to Public App</span>
+  </button>
+</div>
 
       <div className="w-full max-w-md bg-white border border-[#E2E8E5] rounded-sm shadow-sm p-8">
         {/* Top Header Badge */}
