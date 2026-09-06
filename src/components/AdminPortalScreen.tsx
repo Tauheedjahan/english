@@ -386,12 +386,12 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
           <div className="absolute top-0 left-0 right-0 h-1 bg-[#1B4D3E] rounded-t-sm" />
 
           <div className="text-center mb-8">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#E8F2EE] border border-[#1B4D3E]/20 flex items-center justify-center text-[#1B4D3E]">
-              <span className="material-symbols-outlined text-2xl">shield_person</span>
+            <div className="inline-flex items-center gap-2 mb-3 px-3 py-1 bg-[#F4F7F5] border border-[#E2E8E5] rounded-xs">
+              <span className="w-2 h-2 rounded-full bg-[#1B4D3E]"></span>
+              <span className="text-[11px] uppercase tracking-[0.25em] text-[#1B4D3E] font-bold">
+                ADMIN PANEL
+              </span>
             </div>
-            <span className="text-[10px] uppercase tracking-[0.25em] text-[#1B4D3E] font-bold block mb-1">
-              Admin Portal • Restricted Access
-            </span>
             <h1 className="font-serif italic text-3xl text-[#111827]">
               Administrator Sign In
             </h1>
@@ -484,30 +484,6 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
               )}
             </button>
           </form>
-
-          <div className="relative my-6 text-center">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#E5E7EB]" />
-            </div>
-            <span className="relative bg-white px-3 text-[10px] uppercase tracking-widest text-[#6B7280]">
-              Or Authenticate with Google
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleGoogleAdminLogin}
-            disabled={authLoading}
-            className="w-full bg-[#F9FAFB] hover:bg-[#F3F4F6] border border-[#D1D5DB] text-[#111827] py-2.5 px-4 font-sans text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all cursor-pointer rounded-sm"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path fill="#EA4335" d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.2l3.7 2.9C6.5 7.4 9 5 12 5z" />
-              <path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5.1 3.7-8.8z" />
-              <path fill="#FBBC05" d="M5.6 14.7c-.2-.7-.4-1.5-.4-2.3s.2-1.6.4-2.3L1.9 7.2C.7 9.6 0 12.3 0 15.2s.7 5.6 1.9 8l3.7-2.9c0-.2 0-.4 0-.6z" />
-              <path fill="#34A853" d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.3L1.9 16.4C3.7 20.2 7.5 23.5 12 23.5z" />
-            </svg>
-            <span>Sign in with Google ({ADMIN_EMAIL})</span>
-          </button>
 
           <div className="mt-8 pt-6 border-t border-[#E5E7EB] flex items-center justify-between text-xs">
             <button

@@ -1,6 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -9,8 +8,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const rootDir = process.cwd();
 
 const app = express();
 const PORT = 3000;
@@ -26,7 +24,7 @@ export const ADMIN_EMAIL = 'tauheedjahan07@gmail.com';
 const activeAdminTokens = new Map<string, { email: string; createdAt: number }>();
 
 // Persistent database path for curriculum
-const DB_FILE_PATH = path.join(__dirname, 'data', 'curriculum_db.json');
+const DB_FILE_PATH = path.join(rootDir, 'data', 'curriculum_db.json');
 
 // Optional Server-side Supabase Client
 let serverSupabase: SupabaseClient | null = null;

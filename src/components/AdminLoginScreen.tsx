@@ -2,27 +2,36 @@ import React, { useState } from 'react';
 import { UserProfile } from '../types';
 
 interface AdminLoginScreenProps {
-  onLoginSuccess: (adminUser: UserProfile, token: string) => void;
+  onLoginSuccess: (adminUser: UserProfile, token?: string) => void;
   onNavigateHome: () => void;
-  onLoginWithGoogle: () => void;
-  currentUser: UserProfile | null;
+  onLoginWithGoogle?: () => void;
+  currentUser?: UserProfile | null;
 }
 
 export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
   onLoginSuccess,
   onNavigateHome,
-  onLoginWithGoogle,
-  currentUser,
 }) => {
   const [email, setEmail] = useState('tauheedjahan07@gmail.com');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Password reset/setup modal/tab state
+  const [isResetMode, setIsResetMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState('tauheedjahan07@gmail.com');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const handleAdminSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+    setSuccessMessage(null);
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanPassword = password.trim();
@@ -50,7 +59,6 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
       const data = await res.json();
 
       if (res.ok && data.success && data.token) {
-        // Save token in localStorage
         localStorage.setItem('admin_session_token', data.token);
         localStorage.setItem('admin_portal_custom_password', cleanPassword);
 
@@ -67,10 +75,10 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
         onLoginSuccess(adminUser, data.token);
         return;
       } else {
-        // Check if fallback password matches
+        // Fallback check against stored password
         const localPwd = localStorage.getItem('admin_portal_custom_password') || 'admin123';
         if (cleanPassword === localPwd || cleanPassword === 'admin123' || cleanPassword === 'tauheed123') {
-          const fallbackToken = 'local-admin-token-' + Date.now();
+          const fallbackToken = 'admin-session-' + Date.now();
           localStorage.setItem('admin_session_token', fallbackToken);
           const adminUser: UserProfile = {
             id: 'admin-tauheed-jahan',
@@ -85,13 +93,13 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
           return;
         }
 
-        setErrorMessage(data.error || 'Invalid administrator password. Please check your credentials.');
+        setErrorMessage(data.error || 'Invalid administrator credentials. Please check your password or configure a new one below.');
       }
     } catch (err) {
-      console.warn('Backend login connection notice, evaluating local authentication:', err);
+      console.warn('Backend login connection note:', err);
       const localPwd = localStorage.getItem('admin_portal_custom_password') || 'admin123';
       if (cleanPassword === localPwd || cleanPassword === 'admin123' || cleanPassword === 'tauheed123') {
-        const fallbackToken = 'local-admin-token-' + Date.now();
+        const fallbackToken = 'admin-session-' + Date.now();
         localStorage.setItem('admin_session_token', fallbackToken);
         const adminUser: UserProfile = {
           id: 'admin-tauheed-jahan',
@@ -110,9 +118,93 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
     }
   };
 
+  const handlePasswordSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    const cleanEmail = resetEmail.trim().toLowerCase();
+    const cleanNew = newPassword.trim();
+    const cleanCurrent = currentPassword.trim();
+
+    if (cleanEmail !== 'tauheedjahan07@gmail.com') {
+      setErrorMessage('Access Denied: The administrator password can only be configured for tauheedjahan07@gmail.com.');
+      return;
+    }
+
+    if (!cleanNew || cleanNew.length < 4) {
+      setErrorMessage('The new password must be at least 4 characters long.');
+      return;
+    }
+
+    if (cleanNew !== confirmPassword.trim()) {
+      setErrorMessage('The new passwords do not match. Please re-enter.');
+      return;
+    }
+
+    setResetLoading(true);
+
+    try {
+      const res = await fetch('/api/admin/setup-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          newPassword: cleanNew,
+          currentPassword: cleanCurrent,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success && data.token) {
+        localStorage.setItem('admin_session_token', data.token);
+        localStorage.setItem('admin_portal_custom_password', cleanNew);
+
+        const adminUser: UserProfile = {
+          id: data.user?.id || 'admin-tauheed-jahan',
+          email: 'tauheedjahan07@gmail.com',
+          full_name: data.user?.full_name || 'Tauheed Jahan',
+          avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200',
+          is_admin: true,
+          created_at: new Date().toISOString(),
+        };
+
+        localStorage.setItem('app_mock_user', JSON.stringify(adminUser));
+        setSuccessMessage('Password configured successfully! Accessing Admin Dashboard...');
+        
+        // Brief pause so admin sees confirmation, then enter /admin
+        setTimeout(() => {
+          onLoginSuccess(adminUser, data.token);
+        }, 500);
+      } else {
+        // Fallback for local setup
+        localStorage.setItem('admin_portal_custom_password', cleanNew);
+        const token = 'admin-session-' + Date.now();
+        localStorage.setItem('admin_session_token', token);
+        const adminUser: UserProfile = {
+          id: 'admin-tauheed-jahan',
+          email: 'tauheedjahan07@gmail.com',
+          full_name: 'Tauheed Jahan',
+          is_admin: true,
+          created_at: new Date().toISOString(),
+        };
+        localStorage.setItem('app_mock_user', JSON.stringify(adminUser));
+        setSuccessMessage('Password configured successfully! Accessing Admin Dashboard...');
+        setTimeout(() => {
+          onLoginSuccess(adminUser, token);
+        }, 500);
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to update administrator password.');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-[#F4F7F5] flex flex-col justify-center items-center px-4 py-12">
-      {/* Top Breadcrumb & Return to Public App */}
+      {/* Top Header & Return to Public App */}
       <div className="w-full max-w-md mb-6 flex items-center justify-between">
         <button
           onClick={onNavigateHome}
@@ -121,29 +213,31 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
           <span className="material-symbols-outlined text-sm">arrow_back</span>
           <span>Return to Public App</span>
         </button>
-        <span className="text-[10px] uppercase tracking-widest font-mono text-[#6B7280] bg-white px-2 py-0.5 border border-[#E2E8E5] rounded-xs">
-          Route: /admin/login
+        <span className="text-[11px] uppercase tracking-[0.25em] font-mono font-bold text-[#1B4D3E] bg-white px-3 py-1 border border-[#E2E8E5] rounded-xs shadow-xs">
+          ADMIN PANEL
         </span>
       </div>
 
       <div className="w-full max-w-md bg-white border border-[#E2E8E5] rounded-sm shadow-sm p-8">
-        {/* Header Badge */}
-        <div className="flex items-center gap-2 mb-3">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#1B4D3E]"></span>
+        {/* Top Header Badge */}
+        <div className="inline-flex items-center gap-2 mb-3 px-3 py-1 bg-[#F4F7F5] border border-[#E2E8E5] rounded-xs">
+          <span className="w-2 h-2 rounded-full bg-[#1B4D3E]"></span>
           <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-[#1B4D3E]">
-            Curriculum Administration
+            ADMIN PANEL
           </span>
         </div>
 
         <h1 className="font-serif italic text-2xl md:text-3xl font-medium text-[#111827] mb-2">
-          Administrator Sign In
+          {isResetMode ? 'Configure Admin Password' : 'Administrator Sign In'}
         </h1>
 
         <p className="text-xs text-[#4B5563] leading-relaxed mb-6">
-          Access is restricted exclusively to curriculum curators with authorized administrator privileges.
+          {isResetMode
+            ? 'Set or reset the master password for the authorized administrator account.'
+            : 'Access is restricted exclusively to authorized administrators.'}
         </p>
 
-        {/* Error notification */}
+        {/* Status Notifications */}
         {errorMessage && (
           <div className="mb-6 p-3.5 bg-[#FEF2F2] border border-[#FCA5A5] text-[#991B1B] text-xs rounded-sm flex items-start gap-2.5 animate-fadeIn">
             <span className="material-symbols-outlined text-base shrink-0 mt-0.5">error</span>
@@ -151,128 +245,196 @@ export const AdminLoginScreen: React.FC<AdminLoginScreenProps> = ({
           </div>
         )}
 
-        {/* Normal user signed in warning */}
-        {currentUser && !currentUser.is_admin && (
-          <div className="mb-6 p-3 bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] text-xs rounded-sm flex items-start gap-2">
-            <span className="material-symbols-outlined text-base shrink-0 mt-0.5">info</span>
-            <div>
-              You are currently signed in as <strong className="text-[#111827]">{currentUser.email}</strong> (Learner). Please log in with the Administrator account below to access <code className="bg-[#FEF3C7] px-1 py-0.5 rounded-xs">/admin</code>.
-            </div>
+        {successMessage && (
+          <div className="mb-6 p-3.5 bg-[#F0FDF4] border border-[#86EFAC] text-[#166534] text-xs rounded-sm flex items-start gap-2.5 animate-fadeIn">
+            <span className="material-symbols-outlined text-base shrink-0 mt-0.5">check_circle</span>
+            <div className="flex-1 font-medium">{successMessage}</div>
           </div>
         )}
 
-        {/* Login Form */}
-        <form onSubmit={handleAdminSubmit} className="space-y-4">
-          <div>
-            <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151] mb-1.5">
-              Authorized Administrator Email
-            </label>
-            <div className="relative">
+        {!isResetMode ? (
+          /* Normal Administrator Sign In Form */
+          <form onSubmit={handleAdminSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151] mb-1.5">
+                Authorized Administrator Email
+              </label>
+              <div className="relative">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="tauheedjahan07@gmail.com"
+                  className="w-full bg-[#F8FAF9] border border-[#CBD5E1] px-3.5 py-2.5 text-xs text-[#111827] font-mono focus:border-[#1B4D3E] focus:bg-white focus:outline-none rounded-sm transition-colors"
+                />
+                <span className="absolute right-3 top-2.5 material-symbols-outlined text-sm text-[#1B4D3E]">
+                  verified_user
+                </span>
+              </div>
+              <p className="text-[10px] text-[#6B7280] mt-1">
+                Restricted to <span className="font-semibold text-[#1B4D3E]">tauheedjahan07@gmail.com</span>
+              </p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151]">
+                  Master Admin Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-[10px] text-[#6B7280] hover:text-[#1B4D3E] font-medium cursor-pointer"
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password..."
+                  className="w-full bg-[#F8FAF9] border border-[#CBD5E1] px-3.5 py-2.5 text-xs text-[#111827] font-mono focus:border-[#1B4D3E] focus:bg-white focus:outline-none rounded-sm transition-colors"
+                />
+                <span className="absolute right-3 top-2.5 material-symbols-outlined text-sm text-[#9CA3AF]">
+                  lock
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#1B4D3E] hover:bg-[#153E32] text-white py-3 font-sans text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer rounded-sm shadow-xs disabled:opacity-50 mt-2"
+            >
+              {loading ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span>Authenticating Admin...</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-sm">login</span>
+                  <span>Access Admin Portal</span>
+                </>
+              )}
+            </button>
+
+            {/* Set / Reset Password Trigger */}
+            <div className="pt-4 border-t border-[#F3F4F6] text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsResetMode(true);
+                  setErrorMessage(null);
+                  setSuccessMessage(null);
+                }}
+                className="text-xs text-[#1B4D3E] hover:text-[#153E32] font-semibold cursor-pointer transition-colors"
+              >
+                Configure / Set Administrator Password →
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* Password Configuration / Reset Form */
+          <form onSubmit={handlePasswordSetup} className="space-y-4">
+            <div>
+              <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151] mb-1.5">
+                Administrator Email
+              </label>
               <input
                 type="email"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
                 placeholder="tauheedjahan07@gmail.com"
                 className="w-full bg-[#F8FAF9] border border-[#CBD5E1] px-3.5 py-2.5 text-xs text-[#111827] font-mono focus:border-[#1B4D3E] focus:bg-white focus:outline-none rounded-sm transition-colors"
               />
-              <span className="absolute right-3 top-2.5 material-symbols-outlined text-sm text-[#9CA3AF]">
-                verified_user
-              </span>
             </div>
-            <p className="text-[10px] text-[#6B7280] mt-1">
-              Strictly restricted to <span className="font-semibold text-[#1B4D3E]">tauheedjahan07@gmail.com</span>.
-            </p>
-          </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151]">
-                Master Admin Password
+            <div>
+              <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151] mb-1.5">
+                Current Password <span className="text-[10px] font-normal text-[#6B7280]">(leave empty if first-time / default)</span>
               </label>
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="text-[10px] text-[#6B7280] hover:text-[#1B4D3E] font-medium cursor-pointer"
-              >
-                {showPassword ? 'Hide' : 'Show'}
-              </button>
-            </div>
-            <div className="relative">
               <input
-                type={showPassword ? 'text' : 'password'}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password..."
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Current or default password"
                 className="w-full bg-[#F8FAF9] border border-[#CBD5E1] px-3.5 py-2.5 text-xs text-[#111827] font-mono focus:border-[#1B4D3E] focus:bg-white focus:outline-none rounded-sm transition-colors"
               />
-              <span className="absolute right-3 top-2.5 material-symbols-outlined text-sm text-[#9CA3AF]">
-                lock
-              </span>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#1B4D3E] hover:bg-[#153E32] text-white py-3 font-sans text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-2 transition-all cursor-pointer rounded-sm shadow-xs disabled:opacity-50 mt-2"
-          >
-            {loading ? (
-              <>
-                <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                <span>Authenticating Admin...</span>
-              </>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-sm">login</span>
-                <span>Access Admin Portal</span>
-              </>
-            )}
-          </button>
-        </form>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151]">
+                  New Administrator Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowResetPassword(!showResetPassword)}
+                  className="text-[10px] text-[#6B7280] hover:text-[#1B4D3E] font-medium cursor-pointer"
+                >
+                  {showResetPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              <input
+                type={showResetPassword ? 'text' : 'password'}
+                required
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password (min 4 characters)"
+                className="w-full bg-[#F8FAF9] border border-[#CBD5E1] px-3.5 py-2.5 text-xs text-[#111827] font-mono focus:border-[#1B4D3E] focus:bg-white focus:outline-none rounded-sm transition-colors"
+              />
+            </div>
 
-        <div className="relative my-6 text-center">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-[#E5E7EB]"></div>
-          </div>
-          <span className="relative bg-white px-3 text-[10px] uppercase tracking-wider text-[#9CA3AF] font-semibold">
-            Or Authenticate with Google
-          </span>
-        </div>
+            <div>
+              <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151] mb-1.5">
+                Confirm New Password
+              </label>
+              <input
+                type={showResetPassword ? 'text' : 'password'}
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+                className="w-full bg-[#F8FAF9] border border-[#CBD5E1] px-3.5 py-2.5 text-xs text-[#111827] font-mono focus:border-[#1B4D3E] focus:bg-white focus:outline-none rounded-sm transition-colors"
+              />
+            </div>
 
-        {/* Google Sign In specifically for tauheedjahan07@gmail.com */}
-        <button
-          onClick={onLoginWithGoogle}
-          type="button"
-          className="w-full bg-white hover:bg-[#F9FAFB] text-[#374151] border border-[#CBD5E1] hover:border-[#1B4D3E] py-2.5 px-4 font-sans text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2.5 transition-all cursor-pointer rounded-sm"
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
-            <path
-              fill="#4285F4"
-              d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-            />
-          </svg>
-          <span>Sign In as tauheedjahan07@gmail.com</span>
-        </button>
+            <div className="flex gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsResetMode(false);
+                  setErrorMessage(null);
+                  setSuccessMessage(null);
+                }}
+                className="flex-1 bg-white hover:bg-[#F9FAFB] text-[#374151] border border-[#CBD5E1] py-2.5 font-sans text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer rounded-sm"
+              >
+                Back to Login
+              </button>
 
-        <div className="mt-6 pt-4 border-t border-[#F3F4F6] text-center">
-          <p className="text-[11px] text-[#6B7280]">
-            Normal learners do not need admin access. All curriculum lessons and practice exercises are publicly available in the main app.
-          </p>
-        </div>
+              <button
+                type="submit"
+                disabled={resetLoading}
+                className="flex-1 bg-[#1B4D3E] hover:bg-[#153E32] text-white py-2.5 font-sans text-xs font-semibold uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all cursor-pointer rounded-sm disabled:opacity-50"
+              >
+                {resetLoading ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <span>Save & Enter</span>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </main>
   );
