@@ -125,6 +125,41 @@ app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// OAuth popup callback endpoint for Google / Supabase
+app.get('/auth/callback', (req: Request, res: Response) => {
+  res.send(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Authentication Complete</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f8faf9; color: #111827;">
+  <div style="text-align: center; padding: 24px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); max-width: 340px;">
+    <div style="width: 36px; height: 36px; border: 3px solid #1B4D3E; border-top-color: transparent; border-radius: 50%; margin: 0 auto 16px; animation: spin 1s linear infinite;"></div>
+    <h2 style="font-size: 16px; margin: 0 0 8px;">Completing Sign In...</h2>
+    <p style="font-size: 13px; color: #6b7280; margin: 0;">Closing window and returning to Spoken English 90-Day...</p>
+  </div>
+  <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+  <script>
+    try {
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'SUPABASE_AUTH_SUCCESS',
+          hash: window.location.hash,
+          search: window.location.search
+        }, '*');
+        setTimeout(() => window.close(), 600);
+      } else {
+        window.location.href = '/' + window.location.hash;
+      }
+    } catch (e) {
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>`);
+});
+
 // ==============================================================================
 // BACKEND ADMIN AUTHENTICATION ENDPOINTS
 // ==============================================================================

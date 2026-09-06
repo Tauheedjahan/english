@@ -128,7 +128,7 @@ export const Navigation: React.FC<NavigationProps> = ({
                       d="M12 23.5c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.3L1.9 16.4C3.7 20.2 7.5 23.5 12 23.5z"
                     />
                   </svg>
-                  <span>Sign in</span>
+                  <span>Continue with Gmail</span>
                 </button>
               </div>
             )}

@@ -156,6 +156,7 @@ export function App() {
             const profile = await getCurrentUser();
             if (profile && isMounted) {
               setUser(profile);
+              setIsSignInModalOpen(false);
             }
           }
         } else if (event === 'SIGNED_OUT') {
@@ -167,9 +168,22 @@ export function App() {
       authUnsubscribe = () => data.subscription.unsubscribe();
     }
 
+    // Listen for OAuth popup completion messages
+    const handleOAuthPopupMessage = async (event: MessageEvent) => {
+      if (event.data?.type === 'SUPABASE_AUTH_SUCCESS' || event.data?.type === 'GOOGLE_AUTH_SUCCESS') {
+        const profile = await getCurrentUser();
+        if (profile && isMounted) {
+          setUser(profile);
+          setIsSignInModalOpen(false);
+        }
+      }
+    };
+    window.addEventListener('message', handleOAuthPopupMessage);
+
     return () => {
       isMounted = false;
       if (authUnsubscribe) authUnsubscribe();
+      window.removeEventListener('message', handleOAuthPopupMessage);
     };
   }, []);
 
