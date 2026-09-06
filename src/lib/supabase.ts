@@ -457,23 +457,47 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const user = session.user;
-        const userEmail = user.email || '';
-        // Check profile
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+        const userEmail = (user.email || '').trim().toLowerCase();
+        
+        let profileName = user.user_metadata?.full_name || user.user_metadata?.name || '';
+        let profileAvatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || '';
+        let profileIsAdmin = false;
 
-        const isUserAdmin = profile?.is_admin === true || isAuthorizedAdminEmail(userEmail);
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
 
-        return {
+          if (profile) {
+            profileName = profile.full_name || profileName;
+            profileAvatar = profile.avatar_url || profileAvatar;
+            profileIsAdmin = profile.is_admin === true;
+          }
+        } catch {}
+
+        const isUserAdmin = profileIsAdmin || isAuthorizedAdminEmail(userEmail);
+        const resolvedName =
+          profileName ||
+          (isUserAdmin ? 'Tauheed Jahan' : userEmail.split('@')[0].replace(/[._-]/g, ' ') || 'Learner');
+
+        const userProfile: UserProfile = {
           id: user.id,
           email: userEmail,
-          full_name: profile?.full_name || user.user_metadata?.full_name || (isUserAdmin ? 'Tauheed Jahan' : userEmail.split('@')[0] || 'Learner'),
-          avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || '',
+          full_name: resolvedName,
+          avatar_url:
+            profileAvatar ||
+            (isUserAdmin
+              ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'
+              : ''),
           is_admin: isUserAdmin,
         };
+
+        // Cache session locally so future reloads restore seamlessly
+        localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(userProfile));
+        localStorage.setItem('last_learner_email', userEmail);
+        return userProfile;
       }
     } catch (e) {
       console.warn('Supabase getSession error:', e);
@@ -512,7 +536,7 @@ export async function signInAsLearner(
 ): Promise<{ error: Error | null; user?: UserProfile }> {
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanEmail || !cleanEmail.includes('@')) {
-    return { error: new Error('Please enter a valid email address.') };
+    return { error: new Error('Please enter a valid Gmail address.') };
   }
 
   const isUserAdmin = isAuthorizedAdminEmail(cleanEmail);
@@ -536,6 +560,25 @@ export async function signInAsLearner(
   localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(learnerUser));
   localStorage.setItem('last_learner_email', cleanEmail);
 
+  // Sync to Supabase profiles table if Supabase is active
+  if (supabase) {
+    try {
+      await supabase.from('profiles').upsert(
+        {
+          id: learnerUser.id,
+          email: cleanEmail,
+          full_name: derivedName,
+          avatar_url: learnerUser.avatar_url,
+          is_admin: isUserAdmin,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      );
+    } catch (profileErr) {
+      console.warn('Supabase profile sync note:', profileErr);
+    }
+  }
+
   if (isUserAdmin) {
     const token = 'admin-session-' + Date.now();
     localStorage.setItem('admin_session_token', token);
@@ -548,15 +591,14 @@ export async function signInWithGoogle(
   preferredEmail?: string,
   preferredName?: string
 ): Promise<{ error: Error | null; user?: UserProfile }> {
-  const targetEmail =
-    (preferredEmail && preferredEmail.trim()) ||
-    localStorage.getItem('last_learner_email') ||
-    ADMIN_EMAIL;
+  const targetEmail = (preferredEmail && preferredEmail.trim().toLowerCase()) || '';
 
-  const targetName =
-    preferredName ||
-    (targetEmail === ADMIN_EMAIL ? 'Tauheed Jahan' : undefined);
+  // If the learner provided their email, sign in immediately with that account
+  if (targetEmail) {
+    return signInAsLearner(targetEmail, preferredName);
+  }
 
+  // If Supabase is available, trigger OAuth
   if (supabase) {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -577,8 +619,13 @@ export async function signInWithGoogle(
     }
   }
 
-  // Instant local/session sign in with target Gmail
-  return signInAsLearner(targetEmail, targetName);
+  // Fallback to last remembered learner email if available
+  const remembered = localStorage.getItem('last_learner_email');
+  if (remembered) {
+    return signInAsLearner(remembered, preferredName);
+  }
+
+  return { error: new Error('Please enter your Gmail address to sign in.') };
 }
 
 /**

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile } from '../types';
-import { signInAsLearner, signInWithGoogle, ADMIN_EMAIL } from '../lib/supabase';
+import { signInAsLearner, signInWithGoogle } from '../lib/supabase';
 
 interface LearnerSignInModalProps {
   isOpen: boolean;
@@ -15,17 +15,17 @@ export const LearnerSignInModal: React.FC<LearnerSignInModalProps> = ({
   onSignInSuccess,
   initialEmail = '',
 }) => {
-  const [email, setEmail] = useState(ADMIN_EMAIL);
+  const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showAlternativeInput, setShowAlternativeInput] = useState(false);
+  const [lastEmail, setLastEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      const storedLast = localStorage.getItem('last_learner_email');
-      const preferred = initialEmail || storedLast || ADMIN_EMAIL;
-      setEmail(preferred);
+      const storedLast = localStorage.getItem('last_learner_email') || '';
+      setLastEmail(storedLast || null);
+      setEmail(initialEmail || storedLast || '');
       setErrorMessage(null);
       setLoading(false);
     }
@@ -33,23 +33,36 @@ export const LearnerSignInModal: React.FC<LearnerSignInModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Direct, foolproof sign-in handler that will NEVER fail or freeze
   const handleExecuteSignIn = async (targetEmail: string, targetName?: string) => {
+    let cleanEmail = (targetEmail || email).trim().toLowerCase();
+
+    if (!cleanEmail) {
+      setErrorMessage('Please enter your Gmail address to continue.');
+      return;
+    }
+
+    // Friendly auto-formatting if learner only typed their username
+    if (!cleanEmail.includes('@')) {
+      cleanEmail = `${cleanEmail}@gmail.com`;
+      setEmail(cleanEmail);
+    }
+
+    // Basic format check
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setErrorMessage('Please enter a valid Gmail address (e.g. name@gmail.com).');
+      return;
+    }
+
     setErrorMessage(null);
     setLoading(true);
 
-    const cleanEmail = (targetEmail || email || ADMIN_EMAIL).trim().toLowerCase();
-
     try {
-      // 1. Attempt learner sign-in with clean email
-      const { user, error } = await signInAsLearner(
-        cleanEmail,
-        targetName || (cleanEmail === ADMIN_EMAIL ? 'Tauheed Jahan' : fullName)
-      );
+      // 1. Sign in as learner with their personal Gmail
+      const { user, error } = await signInAsLearner(cleanEmail, targetName || fullName);
 
       if (error || !user) {
         // Fallback to Google sign in helper
-        const googleRes = await signInWithGoogle(cleanEmail, targetName);
+        const googleRes = await signInWithGoogle(cleanEmail, targetName || fullName);
         if (googleRes.user) {
           onSignInSuccess(googleRes.user);
           onClose();
@@ -69,10 +82,9 @@ export const LearnerSignInModal: React.FC<LearnerSignInModalProps> = ({
     }
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanEmail = email.trim().toLowerCase() || ADMIN_EMAIL;
-    handleExecuteSignIn(cleanEmail, fullName);
+    handleExecuteSignIn(email, fullName);
   };
 
   return (
@@ -99,7 +111,7 @@ export const LearnerSignInModal: React.FC<LearnerSignInModalProps> = ({
         <div className="inline-flex items-center gap-2 mb-3 px-3 py-1 bg-[#F4F7F5] border border-[#E2E8E5] rounded-xs">
           <span className="w-2 h-2 rounded-full bg-[#1B4D3E]"></span>
           <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-[#1B4D3E]">
-            GOOGLE SIGN IN
+            LEARNER SIGN IN
           </span>
         </div>
 
@@ -108,28 +120,102 @@ export const LearnerSignInModal: React.FC<LearnerSignInModalProps> = ({
         </h2>
 
         <p className="text-xs text-[#4B5563] leading-relaxed mb-6">
-          Access your personalized 90-day English speaking progress, saved vocabulary bookmarks, and AI pronunciation evaluations.
+          Sign in once with your Gmail address to securely save and restore your 90-day learning progress, translation scores, and pronunciation feedback across sessions.
         </p>
 
         {errorMessage && (
           <div className="mb-5 p-3 bg-[#FEF2F2] border border-[#FCA5A5] text-[#991B1B] text-xs rounded-sm flex items-start gap-2 animate-fadeIn">
             <span className="material-symbols-outlined text-base shrink-0 mt-0.5">error</span>
-            <span>{errorMessage}</span>
+            <span className="flex-1 font-medium">{errorMessage}</span>
           </div>
         )}
 
-        {/* 1-Click Fast Sign In Button (The "Simple Process" Button) */}
-        <div className="space-y-4">
+        {/* Quick Continue Button if returning learner */}
+        {lastEmail && lastEmail !== email && (
+          <div className="mb-5 p-3 bg-[#F4F7F5] border border-[#E2E8E5] rounded-sm flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] uppercase tracking-wider text-[#6B7280] font-semibold">
+                Saved Account
+              </div>
+              <div className="text-xs font-mono text-[#111827] truncate font-medium">
+                {lastEmail}
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => {
+                setEmail(lastEmail);
+                handleExecuteSignIn(lastEmail);
+              }}
+              className="shrink-0 text-xs text-[#1B4D3E] hover:text-[#153E32] font-semibold underline cursor-pointer"
+            >
+              Continue with this
+            </button>
+          </div>
+        )}
+
+        {/* Main Sign In Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151]">
+                Your Gmail Address
+              </label>
+              {!email.includes('@') && email.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setEmail(`${email}@gmail.com`)}
+                  className="text-[10px] text-[#1B4D3E] hover:underline font-mono cursor-pointer"
+                >
+                  + @gmail.com
+                </button>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type="email"
+                required
+                autoFocus
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="yourname@gmail.com"
+                className="w-full bg-[#F8FAF9] border border-[#CBD5E1] px-3.5 py-2.5 text-xs text-[#111827] font-mono focus:border-[#1B4D3E] focus:bg-white focus:outline-none rounded-sm transition-colors pr-10"
+              />
+              <span className="absolute right-3 top-2.5 material-symbols-outlined text-sm text-[#9CA3AF]">
+                mail
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151] mb-1.5">
+              Full Name <span className="text-[10px] font-normal text-[#6B7280]">(Optional)</span>
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="e.g. Rohan Sharma"
+                className="w-full bg-[#F8FAF9] border border-[#CBD5E1] px-3.5 py-2.5 text-xs text-[#111827] focus:border-[#1B4D3E] focus:bg-white focus:outline-none rounded-sm transition-colors"
+              />
+              <span className="absolute right-3 top-2.5 material-symbols-outlined text-sm text-[#9CA3AF]">
+                person
+              </span>
+            </div>
+          </div>
+
+          {/* Primary Action Button */}
           <button
-            type="button"
+            type="submit"
             disabled={loading}
-            onClick={() => handleExecuteSignIn(email || ADMIN_EMAIL, fullName || 'Tauheed Jahan')}
-            className="w-full bg-[#1B4D3E] hover:bg-[#153E32] text-white py-3.5 px-4 font-sans text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-3 transition-all cursor-pointer rounded-sm shadow-xs disabled:opacity-50"
+            className="w-full bg-[#1B4D3E] hover:bg-[#153E32] text-white py-3.5 px-4 font-sans text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-3 transition-all cursor-pointer rounded-sm shadow-xs disabled:opacity-50 mt-2"
           >
             {loading ? (
               <div className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                <span>Signing In...</span>
+                <span>Connecting Account...</span>
               </div>
             ) : (
               <>
@@ -151,91 +237,15 @@ export const LearnerSignInModal: React.FC<LearnerSignInModalProps> = ({
                     d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
                   />
                 </svg>
-                <span>Continue with Gmail ({email || ADMIN_EMAIL})</span>
+                <span>Continue with Gmail</span>
               </>
             )}
           </button>
-
-          {/* Divider */}
-          <div className="relative my-4">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#E5E7EB]"></div>
-            </div>
-            <div className="relative flex justify-center text-[10px] uppercase tracking-widest text-[#6B7280]">
-              <span className="bg-white px-2">Or switch account</span>
-            </div>
-          </div>
-
-          {/* Toggle or direct email field */}
-          {!showAlternativeInput ? (
-            <button
-              type="button"
-              onClick={() => setShowAlternativeInput(true)}
-              className="w-full py-2 text-center text-xs text-[#1B4D3E] hover:underline font-medium cursor-pointer"
-            >
-              Sign in with a different Gmail / email address
-            </button>
-          ) : (
-            <form onSubmit={handleFormSubmit} className="space-y-3 pt-1 animate-fadeIn">
-              <div>
-                <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151] mb-1">
-                  Gmail / Email Address
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@gmail.com"
-                    className="w-full bg-[#F8FAF9] border border-[#CBD5E1] px-3.5 py-2.5 text-xs text-[#111827] font-mono focus:border-[#1B4D3E] focus:bg-white focus:outline-none rounded-sm transition-colors"
-                  />
-                  <span className="absolute right-3 top-2.5 material-symbols-outlined text-sm text-[#9CA3AF]">
-                    mail
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] uppercase tracking-wider font-semibold text-[#374151] mb-1">
-                  Learner Name <span className="text-[10px] font-normal text-[#6B7280]">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Alex Sharma"
-                  className="w-full bg-[#F8FAF9] border border-[#CBD5E1] px-3.5 py-2.5 text-xs text-[#111827] focus:border-[#1B4D3E] focus:bg-white focus:outline-none rounded-sm transition-colors"
-                />
-              </div>
-
-              <div className="flex gap-2 pt-1">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-[#1B4D3E] hover:bg-[#153E32] text-white py-2.5 px-3 font-sans text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer rounded-sm disabled:opacity-50"
-                >
-                  <span className="material-symbols-outlined text-sm">login</span>
-                  <span>Sign In with this Email</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail(ADMIN_EMAIL);
-                    setShowAlternativeInput(false);
-                  }}
-                  className="px-3 py-2.5 bg-[#F3F4F6] hover:bg-[#E5E7EB] text-[#374151] text-xs font-medium rounded-sm cursor-pointer"
-                >
-                  Reset
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
+        </form>
 
         <div className="mt-6 pt-4 border-t border-[#F3F4F6] text-center">
-          <p className="text-[11px] text-[#6B7280]">
-            Your learning activity and progress will be securely saved under{' '}
-            <strong className="text-[#1B4D3E] font-medium">{email || ADMIN_EMAIL}</strong>.
+          <p className="text-[11px] text-[#6B7280] leading-relaxed">
+            Each learner account has its own independent 90-day curriculum progress, bookmark collection, and AI speech scores.
           </p>
         </div>
       </div>

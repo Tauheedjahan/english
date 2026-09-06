@@ -35,7 +35,8 @@ import {
   fetchUserProgress,
   saveUserProgress,
   SEED_DAYS,
-  ADMIN_EMAIL,
+  isAuthorizedAdminEmail,
+  supabase,
 } from './lib/supabase';
 
 function getScreenFromLocation(): ScreenView {
@@ -109,10 +110,12 @@ export function App() {
 
   // 1. Initialize User Profile from Supabase / Session / Admin Token
   useEffect(() => {
+    let isMounted = true;
+
     const initAuth = async () => {
       try {
         const currentUser = await getCurrentUser();
-        if (currentUser) {
+        if (currentUser && isMounted) {
           setUser(currentUser);
           return;
         }
@@ -124,7 +127,7 @@ export function App() {
               headers: { 'x-admin-token': adminToken },
             });
             const data = await res.json();
-            if (data.authenticated && data.user) {
+            if (data.authenticated && data.user && isMounted) {
               setUser({
                 id: data.user.id,
                 email: data.user.email,
@@ -137,16 +140,41 @@ export function App() {
             // Ignore
           }
         }
-        setUser(null);
+        if (isMounted) setUser(null);
       } finally {
-        setAuthLoading(false);
+        if (isMounted) setAuthLoading(false);
       }
     };
     initAuth();
+
+    // Listen to Supabase auth state changes to auto-restore learner sessions
+    let authUnsubscribe: (() => void) | null = null;
+    if (supabase) {
+      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') {
+          if (session?.user) {
+            const profile = await getCurrentUser();
+            if (profile && isMounted) {
+              setUser(profile);
+            }
+          }
+        } else if (event === 'SIGNED_OUT') {
+          if (isMounted) {
+            setUser(null);
+          }
+        }
+      });
+      authUnsubscribe = () => data.subscription.unsubscribe();
+    }
+
+    return () => {
+      isMounted = false;
+      if (authUnsubscribe) authUnsubscribe();
+    };
   }, []);
 
   const isAdminUser = Boolean(
-    user && (user.is_admin || user.email?.trim().toLowerCase() === ADMIN_EMAIL.toLowerCase())
+    user && (user.is_admin || isAuthorizedAdminEmail(user.email))
   );
 
   // Automated route protection and redirection for /admin and /admin/login
