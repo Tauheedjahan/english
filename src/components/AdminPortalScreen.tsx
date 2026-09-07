@@ -940,7 +940,7 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
                   2. Translation Practice Sentences ({sentences.length})
                 </h2>
                 <span className="text-[10px] text-[#6B7280] uppercase tracking-wider">
-                  Author English sentences and Hindi/Urdu translations manually
+                  Add Hindi sentences only — AI automatically evaluates translations and conducts oral speaking checks
                 </span>
               </div>
 
@@ -951,7 +951,7 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
                   onClick={handleGenerateSentencesWithAI}
                   disabled={isGeneratingSentences}
                   className="bg-white hover:bg-[#F3F4F6] text-[#1B4D3E] border border-[#1B4D3E]/30 px-3 py-2 text-xs uppercase tracking-wider font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer rounded-sm disabled:opacity-50"
-                  title="Generate 30 Progressive Translation Sentences based on story content using AI"
+                  title="Generate Progressive Translation Sentences based on story content using AI"
                 >
                   {isGeneratingSentences ? (
                     <>
@@ -980,7 +980,7 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
               <div className="p-8 text-center border border-dashed border-[#CBD5E1] space-y-3 rounded-sm bg-[#F9FAFB]">
                 <span className="material-symbols-outlined text-4xl text-[#9CA3AF]">translate</span>
                 <p className="text-xs text-[#4B5563] max-w-sm mx-auto">
-                  No translation sentences added yet for Day {selectedDayNumber}. Click <strong>[ + Add Sentence ]</strong> to add your first translation practice pair.
+                  No translation sentences added yet for Day {selectedDayNumber}. Click <strong>[ + Add Sentence ]</strong> to add your first Hindi sentence.
                 </p>
                 <button
                   onClick={handleAddSentence}
@@ -995,22 +995,16 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
                 {sentences.map((sentence, idx) => (
                   <div
                     key={sentence.id || idx}
-                    className="bg-[#F8FAF9] border border-[#E2E8E5] p-4 space-y-2.5 hover:border-[#CBD5E1] transition-all rounded-sm"
+                    className="bg-[#F8FAF9] border border-[#E2E8E5] p-3.5 space-y-2 hover:border-[#CBD5E1] transition-all rounded-sm"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="w-6 h-6 rounded-full bg-[#1B4D3E] text-white font-semibold text-xs flex items-center justify-center">
                           {sentence.sentence_order || idx + 1}
                         </span>
-                        <select
-                          value={sentence.difficulty || (idx < 10 ? 'Beginner' : idx < 20 ? 'Intermediate' : 'Advanced')}
-                          onChange={(e) => handleSentenceChange(idx, 'difficulty', e.target.value)}
-                          className="text-[10px] uppercase tracking-wider bg-white border border-[#CBD5E1] text-[#1B4D3E] font-semibold px-2 py-0.5 rounded-sm focus:outline-none"
-                        >
-                          <option value="Beginner">Beginner</option>
-                          <option value="Intermediate">Intermediate</option>
-                          <option value="Advanced">Advanced</option>
-                        </select>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-[#1B4D3E]">
+                          Sentence {sentence.sentence_order || idx + 1}
+                        </span>
                       </div>
 
                       {/* Reorder and Delete Controls */}
@@ -1041,54 +1035,18 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
                       </div>
                     </div>
 
-                    {/* Hindi / Urdu Sentence */}
+                    {/* ONLY Hindi Sentence Box */}
                     <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7280] block mb-1">
-                        Hindi / Urdu Sentence *
+                      <label className="text-[10px] font-semibold uppercase tracking-wider text-[#1B4D3E] block mb-1">
+                        Hindi Sentence *
                       </label>
                       <input
                         type="text"
                         value={sentence.hindi}
                         onChange={(e) => handleSentenceChange(idx, 'hindi', e.target.value)}
                         placeholder="यहाँ हिंदी वाक्य लिखें... (e.g. वह तुरंत उसे अपने घर ले आया।)"
-                        className="w-full bg-white border border-[#CBD5E1] px-3 py-2 text-xs text-[#111827] focus:outline-none focus:border-[#1B4D3E] rounded-sm"
+                        className="w-full bg-white border border-[#CBD5E1] px-3.5 py-2.5 text-sm text-[#111827] focus:outline-none focus:border-[#1B4D3E] rounded-sm font-sans"
                       />
-                    </div>
-
-                    {/* Target English Sentence */}
-                    <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-wider text-[#1B4D3E] block mb-1">
-                        English Translation *
-                      </label>
-                      <input
-                        type="text"
-                        value={sentence.english}
-                        onChange={(e) => handleSentenceChange(idx, 'english', e.target.value)}
-                        placeholder="Enter natural English translation... (e.g. He brought it home immediately.)"
-                        className="w-full bg-white border border-[#CBD5E1] px-3 py-2 text-xs text-[#111827] font-medium focus:outline-none focus:border-[#1B4D3E] rounded-sm"
-                      />
-                    </div>
-
-                    {/* Hint & Key Grammar */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <input
-                          type="text"
-                          value={sentence.hint || ''}
-                          onChange={(e) => handleSentenceChange(idx, 'hint', e.target.value)}
-                          placeholder="Optional cue (e.g. brought it home)"
-                          className="w-full bg-white border border-[#E2E8E5] px-2.5 py-1.5 text-xs text-[#4B5563] rounded-sm placeholder-[#9CA3AF] focus:border-[#1B4D3E] focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <input
-                          type="text"
-                          value={sentence.key_grammar || ''}
-                          onChange={(e) => handleSentenceChange(idx, 'key_grammar', e.target.value)}
-                          placeholder="Optional grammar note"
-                          className="w-full bg-white border border-[#E2E8E5] px-2.5 py-1.5 text-xs text-[#4B5563] rounded-sm placeholder-[#9CA3AF] focus:border-[#1B4D3E] focus:outline-none"
-                        />
-                      </div>
                     </div>
                   </div>
                 ))}
