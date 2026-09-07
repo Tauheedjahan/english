@@ -49,7 +49,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             </h1>
             <div className="w-12 h-[2px] bg-[#1B4D3E] my-1"></div>
             <p className="font-sans text-[15px] md:text-[16px] leading-relaxed text-[#4B5563] max-w-md mx-auto">
-              Master English through our sequential 4-step workflow: Video, Reading, 41 Translations, and Spoken AI Conversation.
+              Master English through our sequential 4-step workflow: Video, Reading, Translations, and Spoken AI Conversation.
             </p>
           </div>
 
