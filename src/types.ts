@@ -114,6 +114,17 @@ export interface LessonStep {
   locked: boolean;
 }
 
+export interface TranslationSentenceEvaluation {
+  id: number;
+  order: number;
+  hindi: string;
+  user_translation: string;
+  is_correct: boolean;
+  what_was_wrong?: string;
+  deep_explanation?: string;
+  correct_sentence: string;
+}
+
 export interface ChatMessage {
   id: string;
   sender: 'teacher' | 'student';
@@ -125,7 +136,15 @@ export interface ChatMessage {
     corrected: string;
     rule: string;
   };
+  proper_sentence?: string;
   followup?: string;
+  is_translation_review?: boolean;
+  translation_summary?: {
+    correct_count: number;
+    total_count: number;
+    summary_text: string;
+  };
+  translation_reviews?: TranslationSentenceEvaluation[];
 }
 
 export interface ReadingPage {

@@ -636,6 +636,7 @@ Format your response strictly as a JSON object:
     "corrected": "natural phrase",
     "rule": "brief rule explanation"
   } or null,
+  "proper_sentence": "The complete, pristine, natural English sentence expressing the student's answer ideally, suitable for native pronunciation listening and repetition",
   "followup": "A quick prompt encouraging them to use a specific story word or sentence structure"
 }
 Ensure the JSON is strictly valid.`;
@@ -701,6 +702,7 @@ Ensure the JSON is strictly valid.`;
             reply: parsed.text || parsed.reply || responseText,
             tip: parsed.tip,
             correction: parsed.correction,
+            proper_sentence: parsed.proper_sentence,
             followup: parsed.followup,
           });
           return;
@@ -708,6 +710,7 @@ Ensure the JSON is strictly valid.`;
           res.json({
             text: responseText,
             reply: responseText,
+            proper_sentence: message,
             tip: `Focus on using expressive vocabulary from "${topic}".`,
           });
           return;
@@ -855,6 +858,161 @@ function generateStoryFallbackChat(
 // Register both endpoints so frontend calls to either /api/chat or /api/chat-teacher work seamlessly
 app.post('/api/chat', handleAIChatRequest);
 app.post('/api/chat-teacher', handleAIChatRequest);
+
+// AI Endpoint: Review whole translation of all sentences at once, explain errors & correct sentences, and formulate reading story speaking prompt
+app.post('/api/ai/review-whole-translation', async (req: Request, res: Response) => {
+  try {
+    const {
+      dayNumber = 1,
+      topic = 'Spoken English',
+      storyContent = '',
+      items = [],
+    } = req.body;
+
+    const ai = getAIClient();
+
+    if (ai && Array.isArray(items) && items.length > 0) {
+      const prompt = `You are an elite bilingual English-Hindi language tutor and oral proficiency coach.
+The learner just completed translating all sentences for Day ${dayNumber} (Topic: "${topic}").
+Reading Story:
+"""
+${(storyContent || '').slice(0, 1000)}
+"""
+
+Here are the sentences and the learner's translations:
+${JSON.stringify(
+  items.map((it: any) => ({
+    id: it.id,
+    order: it.order,
+    hindi: it.hindi,
+    expected_english: it.expectedEnglish || '',
+    user_translation: it.userTranslation || '',
+  })),
+  null,
+  2
+)}
+
+YOUR MANDATE:
+1. For each sentence:
+   - "id": item id
+   - "order": sentence number
+   - "hindi": Hindi text
+   - "user_translation": learner's translation
+   - "is_correct": boolean (true if user's translation accurately and naturally captures the meaning with good grammar/tense; false if wrong, incomplete, or contains grammatical/lexical errors).
+   - "correct_sentence": The standard, pristine English sentence.
+   - "what_was_wrong": What specific mistake was made in this sentence (e.g. "Tense Error: Used present continuous instead of simple past", "Literal Hindi Syntax: Followed Subject-Object-Verb order instead of English SVO", "Preposition Mistake: Used 'in' instead of 'at'", "Missing Auxiliary: Omitted 'is'/'was'", "Incomplete translation"). If correct, state "None - Accurately constructed".
+   - "deep_explanation": DEEPLY explain WHY that sentence is not right, what grammatical rule was broken, why the phrasing sounds unnatural or erroneous in English, and how to fix it properly. If correct, provide a short note on why this construction is natural.
+   - "critique": Quick 1-sentence takeaway.
+2. "deep_mentor_message": A comprehensive, warm, pedagogical tutor explanation addressing the learner directly. Mention how many sentences were right, deeply explain the common mistakes found in their translations (e.g., tense, prepositions, word order), and explain why those mistakes happen when translating from Hindi to English.
+3. "summary_text": A concise 2-sentence summary of overall accuracy and key linguistic advice.
+4. "correct_count": Total number of sentences where is_correct is true.
+5. "story_speaking_question": Formulate an engaging oral speaking question specifically based on today's reading story ("${topic}"). Invite the learner to speak their answer into the microphone to check their spoken English!
+
+FORMAT STRICTLY AS JSON:
+{
+  "summary_text": "string",
+  "deep_mentor_message": "string",
+  "correct_count": number,
+  "total_count": number,
+  "reviews": [
+    {
+      "id": number,
+      "order": number,
+      "hindi": "string",
+      "user_translation": "string",
+      "is_correct": boolean,
+      "what_was_wrong": "string",
+      "deep_explanation": "string",
+      "correct_sentence": "string",
+      "critique": "string"
+    }
+  ],
+  "story_speaking_question": "string"
+}`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        config: {
+          responseMimeType: 'application/json',
+          temperature: 0.3,
+        },
+      });
+
+      const responseText = response.text || '';
+      try {
+        const parsed = JSON.parse(responseText);
+        return res.json(parsed);
+      } catch (parseErr) {
+        console.warn('JSON parse error in review-whole-translation:', parseErr);
+      }
+    }
+
+    // High quality deterministic fallback
+    const clean = (s: string) =>
+      (s || '').toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+
+    let correctCount = 0;
+    const reviews = (items || []).map((it: any, idx: number) => {
+      const expected = it.expectedEnglish || 'He brought it home immediately.';
+      const userText = (it.userTranslation || '').trim();
+      const isMatch = userText.length > 0 && (clean(userText) === clean(expected) || (clean(expected).includes(clean(userText)) && userText.length > 10));
+      if (isMatch) correctCount++;
+
+      const whatWasWrong = isMatch
+        ? 'None - Accurately constructed'
+        : userText.length === 0
+        ? 'Empty translation: No English sentence was entered.'
+        : `Phrasing and grammatical variance: User translated "${userText}", which differs in verb form, preposition, or word choice from standard English.`;
+
+      const deepExplanation = isMatch
+        ? 'Great work! The subject, verb agreement, and tense accurately convey the meaning of the Hindi sentence.'
+        : userText.length === 0
+        ? 'This sentence was left blank. To translate this accurately, identify the primary subject and use the appropriate verb tense.'
+        : `In English, sentences must follow the Subject-Verb-Object (SVO) order with strict tense alignment. Your translation "${userText}" has grammatical or lexical inaccuracies compared to the natural English construction: "${expected}".`;
+
+      return {
+        id: it.id || idx + 1,
+        order: it.order || idx + 1,
+        hindi: it.hindi || '',
+        user_translation: userText || '(No translation entered)',
+        is_correct: isMatch,
+        what_was_wrong: whatWasWrong,
+        deep_explanation: deepExplanation,
+        correct_sentence: expected,
+        critique: isMatch
+          ? 'Right! Accurate translation with good vocabulary and flow.'
+          : userText
+          ? `Your translation "${userText}" needs correction. The standard sentence is: "${expected}".`
+          : `No translation was provided. The standard sentence is: "${expected}".`,
+      };
+    });
+
+    const wrongReviews = reviews.filter((r: any) => !r.is_correct);
+    const deepMentorMessage = wrongReviews.length > 0
+      ? `I have thoroughly reviewed your translation sentences for Day ${dayNumber}. You answered ${correctCount} of ${items.length} correctly! In the sentences that were not right, the primary issues involve verb tense consistency and translating literal Hindi word-order directly into English. Study each sentence breakdown below, see exactly what was wrong, and hear the proper pronunciation before we begin speaking.`
+      : `Outstanding work! You translated all ${items.length} sentences with high accuracy and natural English phrasing. Let's move directly to your speaking practice!`;
+
+    res.json({
+      summary_text: `You completed all ${items.length} translation sentences! You got ${correctCount} of ${items.length} right.`,
+      deep_mentor_message: deepMentorMessage,
+      correct_count: correctCount,
+      total_count: items.length,
+      reviews,
+      story_speaking_question: `Now let's check your spoken English fluency! Based on today's reading story ("${topic}"), what was the most important event or turning point for the characters, and what key decision did they make? Tap the microphone and speak your answer!`,
+    });
+  } catch (err: any) {
+    console.error('Error in /api/ai/review-whole-translation:', err);
+    res.status(500).json({
+      error: 'Failed to review whole translation',
+      summary_text: 'Translation completed. Review your sentences and practice speaking.',
+      correct_count: 0,
+      total_count: Array.isArray(req.body?.items) ? req.body.items.length : 0,
+      reviews: [],
+      story_speaking_question: 'Could you share what happened in today\'s reading passage?',
+    });
+  }
+});
 
 // AI Endpoint: Check translation accuracy, return correct sentence if wrong, and generate oral speaking level check prompt
 app.post('/api/ai/check-translation', async (req: Request, res: Response) => {

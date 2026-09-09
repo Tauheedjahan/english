@@ -94,6 +94,7 @@ export function App() {
   const [day1Completed, setDay1Completed] = useState<boolean>(false);
   const [userScore, setUserScore] = useState<number>(94);
   const [completedSentenceIds, setCompletedSentenceIds] = useState<number[]>([]);
+  const [userTranslations, setUserTranslations] = useState<Record<number, string>>({});
   const [lessonSteps, setLessonSteps] = useState<LessonStep[]>(INITIAL_LESSON_STEPS);
   const [isSignInModalOpen, setIsSignInModalOpen] = useState<boolean>(false);
   const [globalRestrictionModal, setGlobalRestrictionModal] = useState<{
@@ -467,7 +468,12 @@ export function App() {
   };
 
   // 3b. Complete Translation -> Unlock AI Conversation
-  const handleFinishTranslation = () => {
+  const handleFinishTranslation = (translations?: Record<number, string>) => {
+    if (translations) {
+      setUserTranslations(translations);
+    }
+    const allIds = currentSentences.map((s) => s.id || 0).filter(Boolean);
+    setCompletedSentenceIds(allIds);
     setLessonSteps((prev) =>
       prev.map((step) => {
         if (step.id === 3) return { ...step, completed: true, active: false };
@@ -475,6 +481,11 @@ export function App() {
         return step;
       })
     );
+    const userId = user?.id || 'guest-learner-id';
+    saveUserProgress(userId, currentDay, {
+      completed_sentence_ids: allIds,
+      translation_completed: true,
+    });
     setCurrentScreen('ai_teacher');
   };
 
@@ -749,6 +760,10 @@ export function App() {
             storyContent={activeDay.story_content}
             sentences={currentSentences}
             completedSentenceIds={completedSentenceIds}
+            userTranslations={userTranslations}
+            onUpdateTranslation={(id, text) => {
+              setUserTranslations((prev) => ({ ...prev, [id]: text }));
+            }}
             onSentenceCompleted={handleSentenceCompleted}
             onCompleteAllForDemo={handleCompleteAllForDemo}
             onFinishTranslation={handleFinishTranslation}
@@ -785,6 +800,8 @@ export function App() {
             storyContent={activeDay.story_content}
             youtubeTitle={activeDay.youtube_title}
             lessonContext={activeDay.lesson_context}
+            sentences={currentSentences}
+            userTranslations={userTranslations}
             onCompleteDay1={handleCompleteDay}
             onBackToLessons={() => setCurrentScreen('lesson_stepper')}
             onOpenListeningPractice={() => setCurrentScreen('listening_practice')}
