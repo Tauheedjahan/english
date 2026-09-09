@@ -25,7 +25,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const displayTopic = activeDay?.topic || topic || 'Morning Routines & Habit Loops';
   const formattedDayNumber = dayNumber.toString().padStart(2, '0');
   return (
-    <main className="flex-grow flex flex-col items-center justify-center px-4 md:px-12 py-8 md:py-12 w-full max-w-[1200px] mx-auto min-h-[calc(100vh-160px)] bg-white text-[#111827]">
+    <main className="flex-grow flex flex-col items-center justify-center px-[20px] py-8 md:py-12 w-full max-w-[1200px] mx-auto min-h-[calc(100vh-160px)] bg-white text-[#111827]">
       {/* State Toggle for demo/reviewing both states */}
       <div className="w-full flex justify-end mb-4">
         <button
