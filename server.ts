@@ -44,7 +44,14 @@ function getAIClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
   if (!aiClient) {
-    aiClient = new GoogleGenAI({ apiKey });
+    aiClient = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
   }
   return aiClient;
 }
@@ -1499,6 +1506,110 @@ Format strictly as JSON:
   }
 });
 
+// ==============================================================================
+// GENERAL SERVER-SIDE GEMINI API ENDPOINTS
+// ==============================================================================
+
+// 1. Gemini Configuration / Status Check (Safe: never leaks the secret key)
+app.get('/api/gemini/status', (req: Request, res: Response) => {
+  const hasKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 0);
+  res.json({
+    configured: hasKey,
+    model: 'gemini-3.8-flash',
+    server_side: true,
+  });
+});
+
+// 2. General Content Generation
+app.post('/api/gemini/generate', async (req: Request, res: Response) => {
+  try {
+    const { prompt, systemInstruction, model = 'gemini-3.8-flash', temperature = 0.7 } = req.body || {};
+    if (!prompt || typeof prompt !== 'string') {
+      return res.status(400).json({ error: 'A valid string "prompt" is required in the request body.' });
+    }
+
+    const ai = getAIClient();
+    if (!ai) {
+      return res.status(503).json({
+        error: 'Gemini API key is not configured on the server. Please define GEMINI_API_KEY in server environment variables.',
+      });
+    }
+
+    const response = await ai.models.generateContent({
+      model: model || 'gemini-3.8-flash',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      config: {
+        systemInstruction: systemInstruction || undefined,
+        temperature: typeof temperature === 'number' ? temperature : 0.7,
+      },
+    });
+
+    res.json({
+      text: response.text || '',
+      success: true,
+    });
+  } catch (err: any) {
+    console.error('Error in /api/gemini/generate:', err);
+    res.status(500).json({
+      error: 'Failed to generate content with Gemini API',
+      details: err?.message || String(err),
+    });
+  }
+});
+
+// 3. General Multi-Turn Chat Proxy
+app.post('/api/gemini/chat', async (req: Request, res: Response) => {
+  try {
+    const { messages = [], prompt = '', systemInstruction, model = 'gemini-3.8-flash', temperature = 0.7 } = req.body || {};
+    const ai = getAIClient();
+    if (!ai) {
+      return res.status(503).json({
+        error: 'Gemini API key is not configured on the server. Please define GEMINI_API_KEY in server environment variables.',
+      });
+    }
+
+    const formattedContents: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
+    if (Array.isArray(messages) && messages.length > 0) {
+      for (const m of messages) {
+        const text = (m.text || m.content || '').trim();
+        if (!text) continue;
+        const role: 'user' | 'model' = (m.role === 'model' || m.role === 'assistant' || m.sender === 'teacher') ? 'model' : 'user';
+        formattedContents.push({ role, parts: [{ text }] });
+      }
+    }
+    if (prompt && typeof prompt === 'string') {
+      formattedContents.push({ role: 'user', parts: [{ text: prompt.trim() }] });
+    }
+
+    if (formattedContents.length === 0) {
+      return res.status(400).json({ error: 'Please provide at least one message or prompt.' });
+    }
+
+    const response = await ai.models.generateContent({
+      model: model || 'gemini-3.8-flash',
+      contents: formattedContents,
+      config: {
+        systemInstruction: systemInstruction || undefined,
+        temperature: typeof temperature === 'number' ? temperature : 0.7,
+      },
+    });
+
+    res.json({
+      text: response.text || '',
+      success: true,
+    });
+  } catch (err: any) {
+    console.error('Error in /api/gemini/chat:', err);
+    res.status(500).json({
+      error: 'Failed to complete chat turn with Gemini API',
+      details: err?.message || String(err),
+    });
+  }
+});
+
+// Export Express app for serverless platforms (e.g. Vercel Serverless Functions)
+export { app };
+export default app;
 
 // Vite middleware for dev / static for production
 async function startServer() {
@@ -1522,4 +1633,7 @@ async function startServer() {
   });
 }
 
-startServer();
+// Start standalone HTTP server unless running in a serverless environment (e.g., Vercel)
+if (!process.env.VERCEL) {
+  startServer();
+}
