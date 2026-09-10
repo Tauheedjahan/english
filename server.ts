@@ -15,6 +15,14 @@ const PORT = 3000;
 
 app.use(express.json());
 
+// Normalize URL paths for Vercel serverless rewrites so /api/* routes match reliably
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (!req.url.startsWith('/api') && req.originalUrl && req.originalUrl.startsWith('/api')) {
+    req.url = req.originalUrl;
+  }
+  next();
+});
+
 // ==============================================================================
 // ADMIN AUTHENTICATION & SECURITY CONFIGURATION
 // ==============================================================================
@@ -26,16 +34,43 @@ const activeAdminTokens = new Map<string, { email: string; createdAt: number }>(
 // Persistent database path for curriculum
 const DB_FILE_PATH = path.join(rootDir, 'data', 'curriculum_db.json');
 
-// Optional Server-side Supabase Client
+// Dynamic Server-side Supabase Client
 let serverSupabase: SupabaseClient | null = null;
-const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-if (supabaseUrl && supabaseKey && !supabaseUrl.includes('placeholder') && supabaseUrl !== 'MY_SUPABASE_URL') {
-  try {
-    serverSupabase = createClient(supabaseUrl, supabaseKey);
-  } catch (err) {
-    console.warn('Server Supabase client init note:', err);
+function getServerSupabase(): SupabaseClient | null {
+  const supabaseUrl = (
+    process.env.SUPABASE_URL ||
+    process.env.VITE_SUPABASE_URL ||
+    ''
+  ).trim();
+  const supabaseKey = (
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_KEY ||
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    ''
+  ).trim();
+
+  if (
+    !supabaseUrl ||
+    !supabaseKey ||
+    supabaseUrl.includes('placeholder') ||
+    supabaseUrl === 'MY_SUPABASE_URL'
+  ) {
+    return null;
   }
+
+  if (!serverSupabase) {
+    try {
+      serverSupabase = createClient(supabaseUrl, supabaseKey, {
+        auth: { persistSession: false },
+      });
+      console.log('Server Supabase client successfully initialized with URL:', supabaseUrl);
+    } catch (err) {
+      console.warn('Server Supabase client init note:', err);
+      return null;
+    }
+  }
+  return serverSupabase;
 }
 
 // Lazy Gemini AI client initialization
@@ -280,16 +315,30 @@ app.post('/api/admin/change-password', requireAdminAuth, (req: Request, res: Res
 // ==============================================================================
 
 // 5. Get all days (Admin only)
-app.get('/api/admin/days', requireAdminAuth, (req: Request, res: Response) => {
+app.get('/api/admin/days', requireAdminAuth, async (req: Request, res: Response) => {
   try {
+    const sb = getServerSupabase();
+    if (sb) {
+      const { data, error } = await sb
+        .from('days')
+        .select('*')
+        .order('day_number', { ascending: true });
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return res.json({ days: data, source: 'supabase' });
+      }
+      if (error) {
+        console.warn('Supabase admin days fetch note:', error.message);
+      }
+    }
+
     const db = loadCurriculumDB();
-    res.json({ days: db.days || [] });
+    res.json({ days: db.days || [], source: 'local' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch days' });
   }
 });
 
-// 6. Create / Update Day & Sentences (Admin only)
+// 6. Create / Update Day & Sentences (Admin only) - Strictly persists and verifies in Supabase
 app.post('/api/admin/days', requireAdminAuth, async (req: Request, res: Response) => {
   try {
     const { day, sentences } = req.body;
@@ -297,10 +346,119 @@ app.post('/api/admin/days', requireAdminAuth, async (req: Request, res: Response
       return res.status(400).json({ error: 'Invalid day payload: day_number is required.' });
     }
 
-    const db = loadCurriculumDB();
     const dayNum = Number(day.day_number);
+    const sb = getServerSupabase();
 
-    // Update or insert day
+    let verifiedSupabaseDay: any = null;
+    let supabaseConfirmed = false;
+
+    // 1. If Supabase is configured, perform INSERT/UPDATE directly and verify
+    if (sb) {
+      const dayPayload: any = {
+        day_number: dayNum,
+        topic: (day.topic || '').trim(),
+        youtube_url: (day.youtube_url || '').trim(),
+        youtube_title: (day.youtube_title || day.topic || '').trim(),
+        reading_heading: (day.reading_heading || day.topic || '').trim(),
+        story_content: (day.story_content || '').trim(),
+        pdf_url: (day.pdf_url || '').trim(),
+        pdf_filename: (day.pdf_filename || '').trim(),
+        lesson_context: (day.lesson_context || '').trim(),
+        is_published: day.is_published ?? true,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Upsert day into public.days
+      let { data: savedDayData, error: dayError } = await sb
+        .from('days')
+        .upsert(dayPayload, { onConflict: 'day_number' })
+        .select()
+        .single();
+
+      // Retry without reading_heading if the remote schema has not added that column yet
+      if (dayError && dayError.message && dayError.message.includes('reading_heading')) {
+        delete dayPayload.reading_heading;
+        const retryRes = await sb
+          .from('days')
+          .upsert(dayPayload, { onConflict: 'day_number' })
+          .select()
+          .single();
+        savedDayData = retryRes.data;
+        dayError = retryRes.error;
+      }
+
+      if (dayError) {
+        console.error('Supabase days upsert failed:', dayError);
+        return res.status(500).json({
+          success: false,
+          error: `Supabase days save failed: ${dayError.message}`,
+          details: dayError,
+        });
+      }
+
+      // Upsert translation sentences into public.translation_sentences
+      if (Array.isArray(sentences) && sentences.length > 0) {
+        // Delete previous sentences for this day
+        const { error: delError } = await sb
+          .from('translation_sentences')
+          .delete()
+          .eq('day_number', dayNum);
+
+        if (delError) {
+          console.error('Supabase sentences delete failed:', delError);
+          return res.status(500).json({
+            success: false,
+            error: `Supabase sentences cleanup failed: ${delError.message}`,
+            details: delError,
+          });
+        }
+
+        const rows = sentences.map((s: any, idx: number) => ({
+          day_number: dayNum,
+          sentence_order: idx + 1,
+          hindi: (s.hindi || '').trim(),
+          english: (s.english || '').trim(),
+          alternatives: Array.isArray(s.alternatives) ? s.alternatives : [],
+          hint: (s.hint || '').trim(),
+          key_grammar: (s.key_grammar || s.keyGrammar || '').trim(),
+          difficulty: s.difficulty || 'Beginner',
+        }));
+
+        const { error: insError } = await sb
+          .from('translation_sentences')
+          .insert(rows);
+
+        if (insError) {
+          console.error('Supabase sentences insert failed:', insError);
+          return res.status(500).json({
+            success: false,
+            error: `Supabase sentences insert failed: ${insError.message}`,
+            details: insError,
+          });
+        }
+      }
+
+      // Verify save response from Supabase
+      const { data: verified, error: verifyError } = await sb
+        .from('days')
+        .select('*')
+        .eq('day_number', dayNum)
+        .single();
+
+      if (verifyError || !verified) {
+        console.error('Supabase verification query failed:', verifyError);
+        return res.status(500).json({
+          success: false,
+          error: `Supabase database save could not be verified: ${verifyError?.message || 'Record not found'}`,
+        });
+      }
+
+      verifiedSupabaseDay = verified;
+      supabaseConfirmed = true;
+    }
+
+    // 2. Synchronize local disk cache for instant resilience
+    const db = loadCurriculumDB();
     const dayIndex = db.days.findIndex((d) => Number(d.day_number) === dayNum);
     const updatedDay = {
       ...day,
@@ -315,7 +473,6 @@ app.post('/api/admin/days', requireAdminAuth, async (req: Request, res: Response
     }
     db.days.sort((a, b) => Number(a.day_number) - Number(b.day_number));
 
-    // Update sentences
     if (Array.isArray(sentences)) {
       db.sentences = (db.sentences || []).filter((s) => Number(s.day_number) !== dayNum);
       const formattedSentences = sentences.map((s, idx) => ({
@@ -326,50 +483,17 @@ app.post('/api/admin/days', requireAdminAuth, async (req: Request, res: Response
       }));
       db.sentences.push(...formattedSentences);
     }
-
     saveCurriculumDB(db);
-
-    // Also sync to Supabase if server client is configured
-    if (serverSupabase) {
-      try {
-        await serverSupabase.from('days').upsert({
-          day_number: dayNum,
-          topic: day.topic,
-          youtube_url: day.youtube_url || '',
-          youtube_title: day.youtube_title || '',
-          reading_heading: day.reading_heading || '',
-          story_content: day.story_content || '',
-          pdf_url: day.pdf_url || '',
-          pdf_filename: day.pdf_filename || '',
-          lesson_context: day.lesson_context || '',
-          is_published: day.is_published ?? true,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'day_number' });
-
-        if (Array.isArray(sentences) && sentences.length > 0) {
-          await serverSupabase.from('translation_sentences').delete().eq('day_number', dayNum);
-          const rows = sentences.map((s, idx) => ({
-            day_number: dayNum,
-            sentence_order: idx + 1,
-            hindi: s.hindi,
-            english: s.english,
-            alternatives: s.alternatives || [],
-            hint: s.hint || '',
-            key_grammar: s.key_grammar || '',
-            difficulty: s.difficulty || 'Beginner',
-          }));
-          await serverSupabase.from('translation_sentences').insert(rows);
-        }
-      } catch (sbErr) {
-        console.warn('Server Supabase background sync note:', sbErr);
-      }
-    }
 
     res.json({
       success: true,
-      day: updatedDay,
+      confirmedBy: supabaseConfirmed ? 'supabase' : 'local_storage_warning',
+      supabaseConfirmed,
+      day: verifiedSupabaseDay || updatedDay,
       sentenceCount: Array.isArray(sentences) ? sentences.length : 0,
-      message: `Day ${dayNum} successfully saved and published.`,
+      message: supabaseConfirmed
+        ? `Day ${dayNum} successfully saved permanently and confirmed by Supabase database.`
+        : `Day ${dayNum} saved locally. Please configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to persist permanently to Supabase.`,
     });
   } catch (err: unknown) {
     console.error('Error saving day in backend:', err);
@@ -381,20 +505,24 @@ app.post('/api/admin/days', requireAdminAuth, async (req: Request, res: Response
 app.delete('/api/admin/days/:dayNumber', requireAdminAuth, async (req: Request, res: Response) => {
   try {
     const dayNum = Number(req.params.dayNumber);
-    const db = loadCurriculumDB();
+    const sb = getServerSupabase();
 
-    db.days = db.days.filter((d) => Number(d.day_number) !== dayNum);
-    db.sentences = (db.sentences || []).filter((s) => Number(s.day_number) !== dayNum);
-
-    saveCurriculumDB(db);
-
-    if (serverSupabase) {
+    if (sb) {
       try {
-        await serverSupabase.from('days').delete().eq('day_number', dayNum);
+        await sb.from('translation_sentences').delete().eq('day_number', dayNum);
+        const { error: sbDeleteErr } = await sb.from('days').delete().eq('day_number', dayNum);
+        if (sbDeleteErr) {
+          console.warn('Supabase delete day warning:', sbDeleteErr.message);
+        }
       } catch (e) {
         console.warn('Supabase delete day note:', e);
       }
     }
+
+    const db = loadCurriculumDB();
+    db.days = db.days.filter((d) => Number(d.day_number) !== dayNum);
+    db.sentences = (db.sentences || []).filter((s) => Number(s.day_number) !== dayNum);
+    saveCurriculumDB(db);
 
     res.json({ success: true, message: `Day ${dayNum} deleted.` });
   } catch (err) {
@@ -406,26 +534,58 @@ app.delete('/api/admin/days/:dayNumber', requireAdminAuth, async (req: Request, 
 // PUBLIC CURRICULUM ENDPOINTS (Reflects changes automatically on public website)
 // ==============================================================================
 
-// Public: Get all published curriculum days
-app.get('/api/curriculum/days', (req: Request, res: Response) => {
+// Public: Get all published curriculum days (Fetches directly from Supabase first)
+app.get('/api/curriculum/days', async (req: Request, res: Response) => {
   try {
+    const sb = getServerSupabase();
+    if (sb) {
+      const { data, error } = await sb
+        .from('days')
+        .select('*')
+        .eq('is_published', true)
+        .order('day_number', { ascending: true });
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return res.json({ days: data, source: 'supabase' });
+      }
+      if (error) {
+        console.warn('Supabase public days fetch note:', error.message);
+      }
+    }
+
     const db = loadCurriculumDB();
     const published = (db.days || []).filter((d) => d.is_published !== false);
-    res.json({ days: published });
+    res.json({ days: published, source: 'local' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch curriculum days' });
   }
 });
 
-// Public: Get sentences for a day
-app.get('/api/curriculum/days/:dayNumber/sentences', (req: Request, res: Response) => {
+// Public: Get sentences for a day (Fetches directly from Supabase first)
+app.get('/api/curriculum/days/:dayNumber/sentences', async (req: Request, res: Response) => {
   try {
     const dayNum = Number(req.params.dayNumber);
+    const sb = getServerSupabase();
+    if (sb) {
+      const { data, error } = await sb
+        .from('translation_sentences')
+        .select('*')
+        .eq('day_number', dayNum)
+        .order('sentence_order', { ascending: true });
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return res.json({ sentences: data, source: 'supabase' });
+      }
+      if (error) {
+        console.warn('Supabase public sentences fetch note:', error.message);
+      }
+    }
+
     const db = loadCurriculumDB();
     const daySentences = (db.sentences || [])
       .filter((s) => Number(s.day_number) === dayNum)
       .sort((a, b) => a.sentence_order - b.sentence_order);
-    res.json({ sentences: daySentences });
+    res.json({ sentences: daySentences, source: 'local' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch sentences' });
   }

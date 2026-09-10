@@ -808,7 +808,33 @@ export async function signOut(): Promise<void> {
 // ==============================================================================
 
 export async function fetchPublishedDays(): Promise<DayRecord[]> {
-  // 1. Try Backend Curriculum API first (ensures immediate sync from Admin Panel)
+  // 1. Direct Supabase Client Query First (Source of Truth)
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('days')
+        .select('*')
+        .order('day_number', { ascending: true });
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return data.map((p: any) => {
+          const seed = SEED_DAYS.find((s) => s.day_number === p.day_number);
+          return {
+            ...p,
+            reading_heading: p.reading_heading || seed?.reading_heading || p.topic,
+            youtube_title: p.youtube_title || seed?.youtube_title || p.topic,
+          };
+        }).sort((a: any, b: any) => a.day_number - b.day_number);
+      }
+      if (error) {
+        console.warn('Direct Supabase fetchPublishedDays note:', error.message);
+      }
+    } catch (e) {
+      console.warn('Direct Supabase fetchPublishedDays error:', e);
+    }
+  }
+
+  // 2. Try Backend Curriculum API (Which also queries Server Supabase directly)
   try {
     const res = await fetch('/api/curriculum/days');
     if (res.ok) {
@@ -828,22 +854,7 @@ export async function fetchPublishedDays(): Promise<DayRecord[]> {
     console.warn('Backend curriculum days fetch note:', apiErr);
   }
 
-  // 2. Try Supabase
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('days')
-        .select('*')
-        .order('day_number', { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        return data;
-      }
-    } catch (e) {
-      console.warn('Supabase fetchPublishedDays error, using local fallback:', e);
-    }
-  }
-
+  // 3. Fallback to local storage if remote database is unreachable
   try {
     const raw = localStorage.getItem(STORAGE_DAYS_KEY);
     if (raw) {
@@ -871,39 +882,25 @@ export async function saveDay(
   day: DayRecord,
   sentences?: SentenceRecord[]
 ): Promise<{ error: Error | null; day: DayRecord }> {
-  // Always guarantee local persistence first so changes are never lost
-  saveDayLocally(day, sentences);
+  let backendResponse: any = null;
+  let backendErrorMsg: string | null = null;
+  let clientSupabaseConfirmed = false;
+  let clientSupabaseErrorMsg: string | null = null;
+  let confirmedDay: DayRecord = day;
 
-  // Sync to backend database API with Admin Authorization
-  try {
-    const token = localStorage.getItem('admin_session_token') || '';
-    const adminSecret = getStoredAdminPassword();
-    await fetch('/api/admin/days', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-admin-token': token,
-        'x-admin-secret': adminSecret,
-      },
-      body: JSON.stringify({ day, sentences }),
-    });
-  } catch (backendErr) {
-    console.warn('Backend /api/admin/days sync note:', backendErr);
-  }
-
-  // If Supabase is available, sync to Supabase in background
+  // 1. Direct Supabase Client Upsert (if Supabase client is initialized in browser)
   if (supabase) {
     try {
       const payload: any = {
         day_number: day.day_number,
-        topic: day.topic,
-        youtube_url: day.youtube_url,
-        youtube_title: day.youtube_title || '',
-        reading_heading: day.reading_heading || '',
-        story_content: day.story_content,
-        pdf_url: day.pdf_url || '',
-        pdf_filename: day.pdf_filename || '',
-        lesson_context: day.lesson_context || '',
+        topic: (day.topic || '').trim(),
+        youtube_url: (day.youtube_url || '').trim(),
+        youtube_title: (day.youtube_title || day.topic || '').trim(),
+        reading_heading: (day.reading_heading || day.topic || '').trim(),
+        story_content: (day.story_content || '').trim(),
+        pdf_url: (day.pdf_url || '').trim(),
+        pdf_filename: (day.pdf_filename || '').trim(),
+        lesson_context: (day.lesson_context || '').trim(),
         is_published: day.is_published ?? true,
         updated_at: new Date().toISOString(),
       };
@@ -915,7 +912,6 @@ export async function saveDay(
         .single();
 
       if (error && error.message && error.message.includes('reading_heading')) {
-        // Fallback in case remote postgres doesn't have the reading_heading column yet
         delete payload.reading_heading;
         const retry = await supabase
           .from('days')
@@ -927,41 +923,94 @@ export async function saveDay(
       }
 
       if (error) {
-        console.warn('Supabase days upsert note:', error.message);
-      }
-
-      // Save sentences if provided
-      if (sentences && sentences.length > 0) {
-        try {
-          await supabase
+        clientSupabaseErrorMsg = `Client Supabase days upsert failed: ${error.message}`;
+      } else {
+        confirmedDay = data || day;
+        if (sentences && sentences.length > 0) {
+          const { error: delErr } = await supabase
             .from('translation_sentences')
             .delete()
             .eq('day_number', day.day_number);
 
-          const rows = sentences.map((s, idx) => ({
-            day_number: day.day_number,
-            sentence_order: idx + 1,
-            hindi: s.hindi,
-            english: s.english,
-            alternatives: s.alternatives || [],
-            hint: s.hint || '',
-            key_grammar: s.key_grammar || '',
-            difficulty: s.difficulty || 'Beginner',
-          }));
+          if (delErr) {
+            clientSupabaseErrorMsg = `Client Supabase sentences cleanup failed: ${delErr.message}`;
+          } else {
+            const rows = sentences.map((s, idx) => ({
+              day_number: day.day_number,
+              sentence_order: idx + 1,
+              hindi: (s.hindi || '').trim(),
+              english: (s.english || '').trim(),
+              alternatives: Array.isArray(s.alternatives) ? s.alternatives : [],
+              hint: (s.hint || '').trim(),
+              key_grammar: (s.key_grammar || (s as any).keyGrammar || '').trim(),
+              difficulty: s.difficulty || 'Beginner',
+            }));
 
-          await supabase.from('translation_sentences').insert(rows);
-        } catch (sErr) {
-          console.warn('Supabase sentences sync note:', sErr);
+            const { error: insErr } = await supabase
+              .from('translation_sentences')
+              .insert(rows);
+
+            if (insErr) {
+              clientSupabaseErrorMsg = `Client Supabase sentences insert failed: ${insErr.message}`;
+            } else {
+              clientSupabaseConfirmed = true;
+            }
+          }
+        } else {
+          clientSupabaseConfirmed = true;
         }
       }
-
-      return { error: null, day: data || day };
     } catch (err: any) {
-      console.warn('Supabase saveDay sync note, persisted locally:', err?.message || err);
+      clientSupabaseErrorMsg = err?.message || String(err);
     }
   }
 
-  return { error: null, day };
+  // 2. Backend API sync (Uses Server Supabase with Service Role Key to bypass client RLS)
+  try {
+    const token = localStorage.getItem('admin_session_token') || '';
+    const adminSecret = getStoredAdminPassword();
+    const res = await fetch('/api/admin/days', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-admin-token': token,
+        'x-admin-secret': adminSecret,
+      },
+      body: JSON.stringify({ day, sentences }),
+    });
+
+    const json = await res.json();
+    if (!res.ok || !json.success) {
+      backendErrorMsg = json?.error || `Backend responded with HTTP ${res.status}`;
+    } else {
+      backendResponse = json;
+      if (json.day) {
+        confirmedDay = json.day;
+      }
+    }
+  } catch (backendErr: any) {
+    backendErrorMsg = backendErr?.message || String(backendErr);
+  }
+
+  // 3. Evaluate Supabase verification confirmation
+  const isServerSupabaseConfirmed = Boolean(backendResponse?.supabaseConfirmed);
+
+  if (isServerSupabaseConfirmed || clientSupabaseConfirmed) {
+    // Supabase confirmed the save permanently! Save local mirror so UI updates seamlessly
+    saveDayLocally(confirmedDay, sentences);
+    return { error: null, day: confirmedDay };
+  }
+
+  // Supabase did not confirm the save. Return explicit error so Admin UI shows failure
+  const combinedErrorMsg =
+    backendErrorMsg ||
+    clientSupabaseErrorMsg ||
+    'Supabase database confirmation failed. Please ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are properly configured.';
+
+  return {
+    error: new Error(combinedErrorMsg),
+    day,
+  };
 }
 
 function saveDayLocally(day: DayRecord, sentences?: SentenceRecord[]) {
@@ -997,7 +1046,27 @@ function saveDayLocally(day: DayRecord, sentences?: SentenceRecord[]) {
 // ==============================================================================
 
 export async function fetchSentencesForDay(dayNumber: number): Promise<SentenceRecord[]> {
-  // 1. Try Backend API first
+  // 1. Direct Supabase Query First (Source of Truth)
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('translation_sentences')
+        .select('*')
+        .eq('day_number', dayNumber)
+        .order('sentence_order', { ascending: true });
+
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+      if (error) {
+        console.warn('Direct Supabase fetchSentencesForDay note:', error.message);
+      }
+    } catch (e) {
+      console.warn('Direct Supabase fetchSentencesForDay error:', e);
+    }
+  }
+
+  // 2. Try Backend API (Which also queries Server Supabase directly)
   try {
     const res = await fetch(`/api/curriculum/days/${dayNumber}/sentences`);
     if (res.ok) {
@@ -1010,24 +1079,7 @@ export async function fetchSentencesForDay(dayNumber: number): Promise<SentenceR
     console.warn('Backend curriculum sentences fetch note:', apiErr);
   }
 
-  // 2. Try Supabase
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('translation_sentences')
-        .select('*')
-        .eq('day_number', dayNumber)
-        .order('sentence_order', { ascending: true });
-
-      if (!error && data && data.length > 0) {
-        return data;
-      }
-    } catch (e) {
-      console.warn('Supabase fetchSentencesForDay error, using local fallback:', e);
-    }
-  }
-
-  // Fallback to local storage
+  // 3. Fallback to local storage
   try {
     const raw = localStorage.getItem(STORAGE_SENTENCES_KEY);
     if (raw) {

@@ -364,7 +364,10 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
         throw error;
       }
 
-      showNotice('success', `Day ${selectedDayNumber} with ${sentences.length} sentence(s) saved and published!`);
+      showNotice(
+        'success',
+        `Day ${selectedDayNumber} with ${sentences.length} sentence(s) permanently saved and confirmed in Supabase database!`
+      );
       await loadDays();
       if (onDayPublished) {
         onDayPublished(selectedDayNumber);
