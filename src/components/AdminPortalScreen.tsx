@@ -507,7 +507,7 @@ export const AdminPortalScreen: React.FC<AdminPortalScreenProps> = ({
   }
 
   return (
-    <main className="flex-grow w-full max-w-[1240px] mx-auto px-4 md:px-8 py-6 md:py-8 flex flex-col min-h-[calc(100vh-160px)] animate-fade-in bg-white text-[#111827]">
+    <main dir="ltr" className="flex-grow w-full max-w-[1240px] mx-auto p-[20px] flex flex-col min-h-[calc(100vh-160px)] animate-fade-in bg-white text-[#111827] text-left">
       {/* Top Admin Status & Security Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 p-4 bg-white border border-[#E2E8E5] shadow-xs rounded-sm">
         <div className="flex items-center gap-3">

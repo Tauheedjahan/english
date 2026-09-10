@@ -75,6 +75,9 @@ function getServerSupabase(): SupabaseClient | null {
 
 // Lazy Gemini AI client initialization
 let aiClient: GoogleGenAI | null = null;
+const DEFAULT_GEMINI_MODEL = 'gemini-3.1-flash-lite';
+const FALLBACK_GEMINI_MODEL = 'gemini-3.6-flash';
+
 function getAIClient(): GoogleGenAI | null {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) return null;
@@ -89,6 +92,33 @@ function getAIClient(): GoogleGenAI | null {
     });
   }
   return aiClient;
+}
+
+async function generateGeminiWithFallback(
+  ai: GoogleGenAI,
+  options: {
+    model?: string;
+    contents: any;
+    config?: any;
+  }
+) {
+  const primaryModel = options.model || DEFAULT_GEMINI_MODEL;
+  try {
+    return await ai.models.generateContent({
+      model: primaryModel,
+      contents: options.contents,
+      config: options.config,
+    });
+  } catch (err: any) {
+    console.warn(`Primary Gemini model (${primaryModel}) error:`, err?.message || err);
+    const fallbackModel = primaryModel === DEFAULT_GEMINI_MODEL ? FALLBACK_GEMINI_MODEL : DEFAULT_GEMINI_MODEL;
+    console.log(`Retrying with fallback Gemini model: ${fallbackModel}`);
+    return await ai.models.generateContent({
+      model: fallbackModel,
+      contents: options.contents,
+      config: options.config,
+    });
+  }
 }
 
 // Database helper functions
@@ -636,8 +666,7 @@ STRICT PEDAGOGICAL CONSTRAINTS:
 ]
 Output strictly valid JSON with no markdown formatting or commentary.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+      const response = await generateGeminiWithFallback(ai, {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           responseMimeType: 'application/json',
@@ -851,8 +880,7 @@ Ensure the JSON is strictly valid.`;
       }
 
       try {
-        const response = await ai.models.generateContent({
-          model: 'gemini-3.8-flash',
+        const response = await generateGeminiWithFallback(ai, {
           contents: formattedHistory,
           config: {
             systemInstruction,
@@ -1097,8 +1125,7 @@ FORMAT STRICTLY AS JSON:
   "story_speaking_question": "string"
 }`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+      const response = await generateGeminiWithFallback(ai, {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           responseMimeType: 'application/json',
@@ -1200,7 +1227,7 @@ app.post('/api/ai/check-translation', async (req: Request, res: Response) => {
     const ai = getAIClient();
 
     if (ai) {
-      const prompt = `You are a certified bilingual English-Hindi language examiner.
+      const prompt = `You are a certified bilingual English-Hindi language examiner and tutor.
 A learner is translating a Hindi sentence into natural English.
 
 Hindi Sentence: "${hindi.trim()}"
@@ -1208,30 +1235,34 @@ Learner's English Translation Attempt: "${userTranslation.trim() || '(No attempt
 ${expectedEnglish ? `Reference English translation on record: "${expectedEnglish.trim()}"` : ''}
 
 Day Context: Day ${dayNumber}, Theme: "${topic}"
-Story Excerpt: "${storyContent ? storyContent.slice(0, 400) : ''}"
+Story Excerpt: "${storyContent ? storyContent.slice(0, 500) : ''}"
 
-YOUR MANDATE:
-1. "is_correct": Boolean (true if the learner's translation is accurate, natural, and grammatically sound in English; false if it has errors in tense, word choice, grammar, or is missing/incorrect).
-2. "correct_sentence": Provide the pristine, natural, native English translation of the Hindi sentence. This MUST be the clean, standard English sentence.
-3. "critique": If incorrect, diagnose what was wrong or unnatural in their attempt (e.g. tense mistakes, awkward phrasing, wrong prepositions). If correct, praise their phrasing and fluency.
-4. "grammar_points": 1-2 concise sentences explaining the grammatical structure (verb tense, preposition, collocations).
-5. "speaking_check_prompt": Formulate an inviting spoken test question/prompt to evaluate the student's speaking level!
-   - Greet the user and invite them to speak into the microphone.
-   - Ask them to practice speaking by repeating the correct sentence or explaining a related thought/scenario.
-   - Example format: "Now, let's test your speaking level! Say the correct sentence out loud, and then tell me: [engaging short question related to this sentence]? Tap the microphone and speak to me!"
+MANDATORY TWO-STEP AI PROCESS:
+STEP 1 - DEEP EXPLANATION OF TRANSLATION:
+- "is_correct": Boolean (true if learner's attempt accurately, naturally, and grammatically translates the Hindi; false if incorrect, incomplete, or contains tense/grammar errors).
+- "correct_sentence": The standard, natural, native English translation.
+- "what_was_wrong": Specific diagnostic title of the mistake (e.g., "Tense Mismatch (Used Present instead of Past)", "Wrong Preposition", "Literal Word-by-Word Translation Trap", "Missing Auxiliary Verb"). If correct: "Accurate Translation".
+- "deep_explanation": A thorough pedagogical explanation addressing the learner directly. Explain WHY the attempt is not right in English, what grammatical rule was broken, how Hindi sentence structure (SOV) differs here from English syntax (SVO), and why native speakers express it as the correct sentence.
+- "grammar_points": 1-2 concise bullet-point rules to remember.
+
+STEP 2 - FOLLOW-UP READING COMPREHENSION QUESTION:
+- "follow_up_reading_question": A compelling reading comprehension question directly tied to today's lesson story ("${topic}"). Ask the student to explain or analyze a plot event, character motivation, or conflict from the story.
+- "speaking_check_prompt": An inviting prompt encouraging them to read the correct sentence aloud and answer the reading comprehension question.
 
 FORMAT STRICTLY AS JSON:
 {
   "is_correct": boolean,
   "correct_sentence": "string",
-  "critique": "string",
+  "what_was_wrong": "string",
+  "deep_explanation": "string",
   "grammar_points": "string",
+  "follow_up_reading_question": "string",
   "speaking_check_prompt": "string",
+  "critique": "string",
   "encouragement": "string"
 }`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+      const response = await generateGeminiWithFallback(ai, {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           responseMimeType: 'application/json',
@@ -1257,12 +1288,17 @@ FORMAT STRICTLY AS JSON:
     res.json({
       is_correct: isCorrect,
       correct_sentence: fallbackCorrect,
+      what_was_wrong: isCorrect ? 'None - Accurately constructed' : 'Grammar and Syntax Variance',
+      deep_explanation: isCorrect
+        ? `Excellent translation! Your English sentence matches natural syntax and captures the exact meaning of "${hindi}".`
+        : `In English, sentences follow strict Subject-Verb-Object agreement. Your attempt "${userTranslation || 'empty'}" differs from natural phrasing. For "${hindi}", English requires "${fallbackCorrect}".`,
+      grammar_points: 'Always verify tense consistency and verb-object placement when translating from Hindi.',
+      follow_up_reading_question: `In today's story "${topic}", what key decision did the main character make, and how did it affect the outcome?`,
+      speaking_check_prompt: `Now, let's test your speaking level! Say the correct sentence out loud: "${fallbackCorrect}", and then explain how this connects to today's story of "${topic}". Tap the microphone and speak!`,
       critique: isCorrect
         ? 'Great job! Your translation is clear, accurate, and grammatically sound.'
-        : `Your attempt "${userTranslation || 'empty'}" differs from standard natural English. The correct sentence is "${fallbackCorrect}".`,
-      grammar_points: 'In standard English, subject-verb-object ordering and natural preposition usage are essential for fluency.',
-      speaking_check_prompt: `Now, let's test your speaking level! Say the correct sentence out loud: "${fallbackCorrect}", and then explain how this connects to today's topic of "${topic}". Tap the microphone and speak!`,
-      encouragement: 'Speaking aloud will accelerate your conversational confidence!',
+        : `Your attempt differs from standard English. The correct sentence is "${fallbackCorrect}".`,
+      encouragement: 'Practicing both translation accuracy and speaking comprehension accelerates fluency!',
     });
   } catch (err: any) {
     console.error('Error in /api/ai/check-translation:', err);
@@ -1334,8 +1370,7 @@ FORMAT STRICTLY AS JSON:
   "next_question": "string"
 }`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+      const response = await generateGeminiWithFallback(ai, {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           responseMimeType: 'application/json',
@@ -1520,8 +1555,7 @@ Format strictly as JSON:
   "encouragement": "Inspiring one-sentence encouragement"
 }`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+      const response = await generateGeminiWithFallback(ai, {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           responseMimeType: 'application/json',
@@ -1619,8 +1653,7 @@ Format strictly as JSON:
   ]
 }`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
+      const response = await generateGeminiWithFallback(ai, {
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         config: {
           responseMimeType: 'application/json',
@@ -1675,7 +1708,7 @@ app.get('/api/gemini/status', (req: Request, res: Response) => {
   const hasKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 0);
   res.json({
     configured: hasKey,
-    model: 'gemini-3.8-flash',
+    model: DEFAULT_GEMINI_MODEL,
     server_side: true,
   });
 });
@@ -1683,7 +1716,7 @@ app.get('/api/gemini/status', (req: Request, res: Response) => {
 // 2. General Content Generation
 app.post('/api/gemini/generate', async (req: Request, res: Response) => {
   try {
-    const { prompt, systemInstruction, model = 'gemini-3.8-flash', temperature = 0.7 } = req.body || {};
+    const { prompt, systemInstruction, model, temperature = 0.7 } = req.body || {};
     if (!prompt || typeof prompt !== 'string') {
       return res.status(400).json({ error: 'A valid string "prompt" is required in the request body.' });
     }
@@ -1695,8 +1728,8 @@ app.post('/api/gemini/generate', async (req: Request, res: Response) => {
       });
     }
 
-    const response = await ai.models.generateContent({
-      model: model || 'gemini-3.8-flash',
+    const response = await generateGeminiWithFallback(ai, {
+      model: model || DEFAULT_GEMINI_MODEL,
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       config: {
         systemInstruction: systemInstruction || undefined,
@@ -1720,7 +1753,7 @@ app.post('/api/gemini/generate', async (req: Request, res: Response) => {
 // 3. General Multi-Turn Chat Proxy
 app.post('/api/gemini/chat', async (req: Request, res: Response) => {
   try {
-    const { messages = [], prompt = '', systemInstruction, model = 'gemini-3.8-flash', temperature = 0.7 } = req.body || {};
+    const { messages = [], prompt = '', systemInstruction, model, temperature = 0.7 } = req.body || {};
     const ai = getAIClient();
     if (!ai) {
       return res.status(503).json({
@@ -1745,8 +1778,8 @@ app.post('/api/gemini/chat', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Please provide at least one message or prompt.' });
     }
 
-    const response = await ai.models.generateContent({
-      model: model || 'gemini-3.8-flash',
+    const response = await generateGeminiWithFallback(ai, {
+      model: model || DEFAULT_GEMINI_MODEL,
       contents: formattedContents,
       config: {
         systemInstruction: systemInstruction || undefined,

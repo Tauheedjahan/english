@@ -31,14 +31,14 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
 export const SEED_DAYS: DayRecord[] = [
   {
     day_number: 1,
-    topic: 'Morning Routines & Habit Loops',
-    youtube_url: 'https://www.youtube.com/watch?v=RcGyVTAoXEU',
-    youtube_title: 'The Science of Morning Routines & Productive Habits',
-    reading_heading: 'The 6:00 AM Architect',
-    story_content: `The dawn broke over the city in a soft wash of amber and steel-grey light. While the neighborhood was still wrapped in silence, Rohan woke up at 6:00 AM. He immediately resisted the urge to reach for his smartphone. Instead, he drank a large glass of lukewarm water to kick-start his metabolism and stood beside the open window, inhaling the crisp morning air. Over the past month, he had replaced chaos with quiet intention. He used to stay up late browsing social media, but now he prioritized physical and mental clarity. By preparing his mind and embracing challenge with courage, every morning became an architectural foundation for genuine productivity.`,
+    topic: 'The Tortoise and the Hare',
+    youtube_url: 'https://www.youtube.com/watch?v=W1hqarMIik8',
+    youtube_title: 'The Tortoise and the Hare',
+    reading_heading: 'The Tortoise and the Hare',
+    story_content: `In a peaceful forest, a boastful hare constantly mocked a slow-moving tortoise. Tired of the hare's arrogance, the tortoise calmly challenged him to a race. All the woodland animals gathered at sunrise to watch the unusual contest. The race began, and the hare leaped ahead with incredible speed, leaving the tortoise far behind. Confident that victory was guaranteed, the hare decided to take a short nap beneath a shady oak tree. Meanwhile, the patient tortoise kept taking one steady step after another without resting. When the hare finally woke up and sprinted frantically toward the finish line, he was shocked to see the tortoise crossing the ribbon. The gentle tortoise looked at the crowd and smiled, proving that slow and steady wins the race.`,
     pdf_url: '',
-    pdf_filename: 'Day_01_Morning_Routines_Guide.pdf',
-    lesson_context: 'Focus on daily morning habits, waking up without friction, reframing stress as courage, and using verbs like wake up, kick-start, used to, and reach out.',
+    pdf_filename: 'Day_01_The_Tortoise_and_the_Hare.pdf',
+    lesson_context: 'Story of the boastful hare and the determined tortoise. Key themes: perseverance, arrogance versus humility, steady effort, and narrative past tenses.',
     is_published: true,
   },
   {
@@ -412,8 +412,21 @@ const STORAGE_USER_KEY = 'spoken_eng_current_user';
 const STORAGE_SCORES_KEY = 'spoken_eng_ai_scores';
 
 // Helper to initialize local storage
+const CURRICULUM_VERSION_KEY = 'spoken_eng_curriculum_version';
+const CURRENT_CURRICULUM_VERSION = '2026.09.11_tortoise_hare';
+
 function initLocalStore() {
   if (typeof window === 'undefined') return;
+
+  const storedVersion = localStorage.getItem(CURRICULUM_VERSION_KEY);
+  if (storedVersion !== CURRENT_CURRICULUM_VERSION) {
+    // Refresh fallback cache with latest curriculum
+    localStorage.setItem(STORAGE_DAYS_KEY, JSON.stringify(SEED_DAYS));
+    const allSentences = [...SEED_DAY_1_SENTENCES, ...SEED_DAY_2_SENTENCES];
+    localStorage.setItem(STORAGE_SENTENCES_KEY, JSON.stringify(allSentences));
+    localStorage.setItem(CURRICULUM_VERSION_KEY, CURRENT_CURRICULUM_VERSION);
+    return;
+  }
 
   if (!localStorage.getItem(STORAGE_DAYS_KEY)) {
     localStorage.setItem(STORAGE_DAYS_KEY, JSON.stringify(SEED_DAYS));

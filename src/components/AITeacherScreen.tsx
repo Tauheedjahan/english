@@ -601,7 +601,7 @@ export const AITeacherScreen: React.FC<AITeacherScreenProps> = ({
   }) || [];
 
   return (
-    <main className="flex-grow w-full max-w-[1240px] mx-auto px-4 md:px-10 py-6 md:py-8 flex flex-col min-h-[calc(100vh-140px)] bg-white text-[#111827]">
+    <main dir="ltr" className="flex-grow w-full max-w-[1240px] mx-auto p-[20px] flex flex-col min-h-[calc(100vh-140px)] bg-white text-[#111827] text-left">
       {/* Top Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b border-[#E2E8E5] pb-4">
         <div>

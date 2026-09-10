@@ -11,496 +11,392 @@ export interface TranslationSentence {
 export const DAY_1_TRANSLATION_SENTENCES: TranslationSentence[] = [
   {
     id: 1,
-    hindi: "मैं आमतौर पर सुबह छह बजे उठता हूँ।",
-    english: "I usually wake up at six in the morning.",
+    hindi: "एक घने जंगल में एक तेज़ खरगोश रहता था।",
+    english: "A fast hare lived in a dense forest.",
     alternatives: [
-      "I usually wake up at 6 am.",
-      "I generally wake up at 6 in the morning.",
-      "I usually get up at six in the morning."
+      "A speedy hare lived in a thick forest.",
+      "In a dense forest lived a quick hare.",
+      "A swift hare lived in a lush forest."
     ],
-    category: "Waking & Awakening",
-    keyGrammar: "Use 'wake up' for stopping sleep, 'usually' precedes the main verb.",
-    hint: "usually wake up / at six"
+    category: "Story Introduction",
+    keyGrammar: "Simple Past tense with regular verb 'lived' for setting past narratives.",
+    hint: "Fast hare / lived / dense forest"
   },
   {
     id: 2,
-    hindi: "अलार्म बजने के तुरंत बाद मैं बिस्तर छोड़ देता हूँ।",
-    english: "I get out of bed right after the alarm goes off.",
+    hindi: "वह हमेशा अपनी तेज़ रफ़्तार पर घमंड करता था।",
+    english: "He was always boastful of his fast speed.",
     alternatives: [
-      "I leave the bed right after the alarm rings.",
-      "I get up right after the alarm goes off.",
-      "Immediately after the alarm goes off, I get out of bed."
+      "He always boasted about his great speed.",
+      "He was always proud of his quick pace.",
+      "He constantly bragged about his swiftness."
     ],
-    category: "Waking & Awakening",
-    keyGrammar: "Phrasal verb: 'goes off' means to sound or ring; 'get out of bed' means physically standing up.",
-    hint: "get out of bed / alarm goes off"
+    category: "Character Trait",
+    keyGrammar: "Adverb of frequency 'always' with past state-of-being 'was boastful of'.",
+    hint: "always boastful / fast speed"
   },
   {
     id: 3,
-    hindi: "मैं अपनी सुबह की चाय से पहले हमेशा एक गिलास गुनगुना पानी पीता हूँ।",
-    english: "I always drink a glass of lukewarm water before my morning tea.",
+    hindi: "कछुआ बहुत धीरे-धीरे चलता था।",
+    english: "The tortoise used to walk very slowly.",
     alternatives: [
-      "I always drink a glass of warm water before my morning tea.",
-      "Before my morning tea, I always drink a glass of lukewarm water."
+      "The tortoise walked very slowly.",
+      "The tortoise was walking very slowly.",
+      "The turtle moved at a very slow pace."
     ],
-    category: "Morning Hydration",
-    keyGrammar: "'Lukewarm' refers to moderately warm water.",
-    hint: "lukewarm water / before my morning tea"
+    category: "Character Trait",
+    keyGrammar: "'Used to' expresses past habitual action or characteristic; adverb 'slowly' modifies 'walk'.",
+    hint: "tortoise / used to walk / slowly"
   },
   {
     id: 4,
-    hindi: "क्या आप सुबह जल्दी उठने के आदी हैं?",
-    english: "Are you used to waking up early in the morning?",
+    hindi: "खरगोश ने कछुए की धीमी चाल का मज़ाक उड़ाया।",
+    english: "The hare made fun of the tortoise's slow pace.",
     alternatives: [
-      "Are you accustomed to waking up early in the morning?",
-      "Are you used to getting up early in the morning?"
+      "The hare mocked the tortoise for moving slowly.",
+      "The hare ridiculed the tortoise's slow walk.",
+      "The hare laughed at the tortoise's slow pace."
     ],
-    category: "Habitual Structures",
-    keyGrammar: "'Be used to' is followed by a gerund (verb + ing), not the base verb.",
-    hint: "used to waking up / early in the morning"
+    category: "Conflict",
+    keyGrammar: "Phrasal idiom: 'make fun of' in simple past becomes 'made fun of'.",
+    hint: "made fun of / tortoise's slow pace"
   },
   {
     id: 5,
-    hindi: "मैं पहले देर से उठा करता था, लेकिन अब मेरी दिनचर्या बदल गई है।",
-    english: "I used to wake up late, but now my routine has changed.",
+    hindi: "कछुए ने शांत रहकर खरगोश को दौड़ की चुनौती दी।",
+    english: "Staying calm, the tortoise challenged the hare to a race.",
     alternatives: [
-      "I used to get up late, but now my routine has changed.",
-      "Previously I used to wake up late, but now my routine has changed."
+      "The tortoise remained calm and challenged the hare to a race.",
+      "The tortoise challenged the hare to a race while staying calm.",
+      "Calmly, the tortoise threw a race challenge to the hare."
     ],
-    category: "Habitual Structures",
-    keyGrammar: "'Used to' (past habit) takes the base infinitive: 'used to wake up'.",
-    hint: "used to wake up / now my routine has changed"
+    category: "Challenge",
+    keyGrammar: "Participial clause 'Staying calm' sets manner before the main action.",
+    hint: "staying calm / challenged the hare / race"
   },
   {
     id: 6,
-    hindi: "ताज़ी हवा लेने के लिए मैं बालकनी की खिड़कियाँ खोलता हूँ।",
-    english: "I open the balcony windows to get some fresh air.",
+    hindi: "जंगल के सभी जानवर यह अनोखा मुकाबला देखने आए।",
+    english: "All the animals of the forest came to watch this unique contest.",
     alternatives: [
-      "I open the windows of the balcony to let in fresh air.",
-      "To get fresh air, I open the balcony windows."
+      "All the forest animals gathered to see this unusual race.",
+      "Every animal in the forest came to witness this unique match.",
+      "The woodland animals arrived to view this rare race."
     ],
-    category: "Morning Environment",
-    keyGrammar: "'To get' is an infinitive of purpose.",
-    hint: "open the balcony windows / fresh air"
+    category: "Gathering",
+    keyGrammar: "Infinitive of purpose: 'came to watch' explains reason for arrival.",
+    hint: "forest animals / came to watch / unique contest"
   },
   {
     id: 7,
-    hindi: "वह हर सुबह पंद्रह मिनट ध्यान लगाती है।",
-    english: "She meditates for fifteen minutes every morning.",
+    hindi: "दौड़ शुरू होते ही खरगोश हवा की तरह भागा।",
+    english: "As soon as the race began, the hare ran like the wind.",
     alternatives: [
-      "She practices meditation for fifteen minutes every morning.",
-      "Every morning she meditates for 15 minutes."
+      "The moment the race started, the hare dashed forward like the wind.",
+      "No sooner had the race begun than the hare sprinted ahead.",
+      "As soon as the race commenced, the hare sped off like wind."
     ],
-    category: "Mindfulness",
-    keyGrammar: "Simple present with third-person singular 'meditates'; preposition 'for' specifies duration.",
-    hint: "meditates for fifteen minutes"
+    category: "Race Start",
+    keyGrammar: "Subordinating conjunction 'As soon as' paired with simile 'like the wind'.",
+    hint: "as soon as / began / ran like the wind"
   },
   {
     id: 8,
-    hindi: "एक अच्छी सुबह की दिनचर्या पूरे दिन के लिए सकारात्मक माहौल तैयार करती है।",
-    english: "A good morning routine sets a positive tone for the entire day.",
+    hindi: "कछुआ बिना रुके अपने कदम आगे बढ़ाता रहा।",
+    english: "The tortoise kept moving his steps forward without stopping.",
     alternatives: [
-      "A healthy morning routine sets a positive tone for the whole day.",
-      "A good morning routine establishes a positive tone for the entire day."
+      "Without pausing, the tortoise kept walking forward.",
+      "The tortoise continued stepping forward steadily.",
+      "The tortoise kept moving ahead relentlessly."
     ],
-    category: "Mindfulness",
-    keyGrammar: "Idiom: 'sets a positive tone' means creates the right atmosphere.",
-    hint: "sets a positive tone / entire day"
+    category: "Perseverance",
+    keyGrammar: "'Keep + verb-ing' demonstrates continuous past persistence.",
+    hint: "kept moving / forward / without stopping"
   },
   {
     id: 9,
-    hindi: "मैं अपने दिन की शुरुआत फोन चेक किए बिना करता हूँ।",
-    english: "I start my day without checking my phone.",
+    hindi: "खरगोश ने पीछे मुड़कर देखा तो कछुआ बहुत दूर था।",
+    english: "When the hare looked back, the tortoise was far behind.",
     alternatives: [
-      "I begin my day without looking at my phone.",
-      "I start the day without checking my smartphone."
+      "Looking back, the hare noticed the tortoise was miles away.",
+      "The hare looked behind and saw the tortoise far in the distance.",
+      "When the hare glanced backward, the tortoise was distant."
     ],
-    category: "Digital Discipline",
-    keyGrammar: "Preposition 'without' is followed by gerund 'checking'.",
-    hint: "without checking my phone"
+    category: "Observation",
+    keyGrammar: "Time clause 'When the hare looked back' with adjective phrase 'far behind'.",
+    hint: "when looked back / far behind"
   },
   {
     id: 10,
-    hindi: "हल्का व्यायाम मुझे ऊर्जावान महसूस करने में मदद करता है।",
-    english: "Light exercise helps me feel energized.",
+    hindi: "खरगोश ने एक घने पेड़ के नीचे आराम करने का फैसला किया।",
+    english: "The hare decided to rest under a shady tree.",
     alternatives: [
-      "Light workout helps me feel full of energy.",
-      "Mild exercise helps me feel energized throughout the day."
+      "The hare chose to take a nap beneath a dense tree.",
+      "He made up his mind to rest under a leafy tree.",
+      "The hare decided to relax under a shady oak tree."
     ],
-    category: "Physical Wellbeing",
-    keyGrammar: "'Help someone do / feel something' (bare infinitive or to-infinitive).",
-    hint: "light exercise / feel energized"
+    category: "Decision",
+    keyGrammar: "Verb followed by infinitive: 'decided to rest'; preposition 'under'.",
+    hint: "decided to rest / under a shady tree"
   },
   {
     id: 11,
-    hindi: "नाश्ता करने से पहले मैं अपने दांत ब्रश करता हूँ और नहाता हूँ।",
-    english: "Before having breakfast, I brush my teeth and take a shower.",
+    hindi: "ठंडी हवा के कारण उसे गहरी नींद आ गई।",
+    english: "Due to the cool breeze, he fell into a deep sleep.",
     alternatives: [
-      "Before breakfast, I brush my teeth and take a bath.",
-      "I brush my teeth and shower before having breakfast."
+      "Because of the gentle breeze, he fell fast asleep.",
+      "The cool breeze lulled him into a sound sleep.",
+      "Owing to the cool air, he drifted into deep slumber."
     ],
-    category: "Personal Hygiene",
-    keyGrammar: "Collocations: 'brush teeth', 'take a shower'.",
-    hint: "brush my teeth / take a shower"
+    category: "Action",
+    keyGrammar: "Prepositional cause 'Due to' followed by idiom 'fell into a deep sleep'.",
+    hint: "due to cool breeze / fell into deep sleep"
   },
   {
     id: 12,
-    hindi: "मेरे पिता सुबह का अखबार पढ़ते हुए अपनी चाय पीते हैं।",
-    english: "My father drinks his tea while reading the morning newspaper.",
+    hindi: "दूसरी तरफ, कछुआ लगातार चलता रहा।",
+    english: "On the other hand, the tortoise walked continuously.",
     alternatives: [
-      "My father sips his tea while reading the morning newspaper.",
-      "While reading the morning paper, my father drinks his tea."
+      "Meanwhile, the tortoise kept walking steadily.",
+      "On the flip side, the tortoise never ceased walking.",
+      "In contrast, the tortoise plodded on persistently."
     ],
-    category: "Family Routines",
-    keyGrammar: "Participle clause with 'while' expressing simultaneous actions.",
-    hint: "drinks his tea while reading"
+    category: "Contrast",
+    keyGrammar: "Contrastive connector 'On the other hand' highlights parallel opposing behavior.",
+    hint: "on the other hand / walked continuously"
   },
   {
     id: 13,
-    hindi: "स्वस्थ नाश्ता आपके मस्तिष्क को सक्रिय रखने के लिए आवश्यक है।",
-    english: "A healthy breakfast is essential to keep your brain active.",
+    hindi: "उसने खरगोश को सोते हुए पार कर लिया।",
+    english: "He passed the sleeping hare.",
     alternatives: [
-      "A nutritious breakfast is necessary to keep your mind alert.",
-      "A healthy breakfast is vital for keeping your brain active."
+      "He overtook the hare who was sound asleep.",
+      "He walked past the sleeping hare quietly.",
+      "He moved past the slumbering rabbit."
     ],
-    category: "Breakfast & Nutrition",
-    keyGrammar: "'Essential to keep' emphasizes necessity.",
-    hint: "essential to keep / brain active"
+    category: "Turning Point",
+    keyGrammar: "Present participle 'sleeping' acts as an adjective modifying 'hare'.",
+    hint: "passed / sleeping hare"
   },
   {
     id: 14,
-    hindi: "मैं अक्सर नाश्ते में दलिया और ताजे फल खाना पसंद करता हूँ।",
-    english: "I often prefer to eat oatmeal and fresh fruits for breakfast.",
+    hindi: "जब खरगोश की आँख खुली, तो सूरज ढल रहा था।",
+    english: "When the hare opened his eyes, the sun was setting.",
     alternatives: [
-      "I often like having oatmeal and fresh fruit for breakfast.",
-      "I usually prefer porridge and fresh fruits for breakfast."
+      "By the time the hare woke up, the sun was going down.",
+      "As the hare awakened, the sun was about to set.",
+      "When the rabbit awoke, twilight was already falling."
     ],
-    category: "Breakfast & Nutrition",
-    keyGrammar: "Preposition 'for' is used with meals: 'for breakfast'.",
-    hint: "prefer to eat oatmeal / for breakfast"
+    category: "Turning Point",
+    keyGrammar: "Past Continuous 'was setting' for an environmental background event in progress.",
+    hint: "when opened eyes / sun was setting"
   },
   {
     id: 15,
-    hindi: "क्या आप समय बचाने के लिए रात में ही अपने कपड़े तैयार कर लेते हैं?",
-    english: "Do you prepare your clothes at night to save time?",
+    hindi: "वह घबराकर फिनिश लाइन की ओर दौड़ा।",
+    english: "He ran toward the finish line in panic.",
     alternatives: [
-      "Do you lay out your clothes at night to save time?",
-      "Do you pick your outfit the night before to save time?"
+      "Panicking, he dashed toward the finish line.",
+      "He sprinted frantically toward the victory ribbon.",
+      "In a state of panic, he rushed to the finish line."
     ],
-    category: "Daily Planning",
-    keyGrammar: "Infinitive of purpose: 'to save time'.",
-    hint: "prepare your clothes / to save time"
+    category: "Climax",
+    keyGrammar: "Directional preposition 'toward' with adverbial manner 'in panic'.",
+    hint: "ran toward / finish line / in panic"
   },
   {
     id: 16,
-    hindi: "वह हमेशा समय पर अपने कार्यालय पहुँचने की कोशिश करता है।",
-    english: "He always tries to reach his office on time.",
+    hindi: "लेकिन कछुआ पहले ही जीत चुका था।",
+    english: "However, the tortoise had already won.",
     alternatives: [
-      "He always tries to get to his office on time.",
-      "He always aims to arrive at his office punctually."
+      "But the tortoise had already crossed the line.",
+      "Yet, the tortoise had already clinched the victory.",
+      "Still, the tortoise had already finished the race."
     ],
-    category: "Punctuality",
-    keyGrammar: "'On time' means punctual; 'in time' means with time to spare.",
-    hint: "tries to reach / on time"
+    category: "Climax",
+    keyGrammar: "Past Perfect 'had already won' for completion prior to another past point.",
+    hint: "however / had already won"
   },
   {
     id: 17,
-    hindi: "काम शुरू करने से पहले मैं अपनी दैनिक प्राथमिकताओं की एक सूची बनाता हूँ।",
-    english: "Before starting work, I make a list of my daily priorities.",
+    hindi: "सभी जानवरों ने कछुए की जीत पर तालियाँ बजाईं।",
+    english: "All the animals applauded the tortoise's victory.",
     alternatives: [
-      "Prior to beginning work, I create a list of my daily priorities.",
-      "I list my daily priorities before I start working."
+      "Every animal clapped for the tortoise's win.",
+      "The woodland animals cheered and applauded the victory.",
+      "All creatures cheered the winning tortoise."
     ],
-    category: "Productivity",
-    keyGrammar: "Collocation: 'make a list', 'daily priorities'.",
-    hint: "make a list / daily priorities"
+    category: "Resolution",
+    keyGrammar: "Past transitive verb 'applauded' with possessive noun 'tortoise\\'s'.",
+    hint: "all animals / applauded / tortoise's victory"
   },
   {
     id: 18,
-    hindi: "सुबह की शांति मुझे रचनात्मक रूप से सोचने में मदद करती है।",
-    english: "The morning calm helps me think creatively.",
+    hindi: "खरगोश को अपनी गलती और अहंकार का एहसास हुआ।",
+    english: "The hare realized his mistake and arrogance.",
     alternatives: [
-      "The morning silence allows me to think creatively.",
-      "The quiet of the morning helps me think creatively."
+      "The rabbit understood his folly and excessive pride.",
+      "The hare came to realize his pride and overconfidence.",
+      "The hare felt remorse for his boastfulness and error."
     ],
-    category: "Mindfulness",
-    keyGrammar: "Adverb 'creatively' modifies verb 'think'.",
-    hint: "morning calm / think creatively"
+    category: "Moral Growth",
+    keyGrammar: "Transitive mental verb 'realized' followed by coordinate noun phrase.",
+    hint: "realized / mistake and arrogance"
   },
   {
     id: 19,
-    hindi: "मैं अपने काम पर जाने से पहले अपने पालतू कुत्ते को टहलाने ले जाता हूँ।",
-    english: "I take my pet dog for a walk before heading to work.",
+    hindi: "धैर्य और लगन से कठिन लक्ष्य भी हासिल हो जाते हैं।",
+    english: "With patience and dedication, even difficult goals are achieved.",
     alternatives: [
-      "I walk my pet dog before leaving for work.",
-      "Before going to work, I take my dog out for a walk."
+      "Patience and perseverance make even tough goals attainable.",
+      "Through steady dedication, one can accomplish hard targets.",
+      "With diligence and patience, impossible aims become reality."
     ],
-    category: "Daily Life",
-    keyGrammar: "Idiom: 'take ... for a walk'; 'heading to work' (phrasal verb for traveling towards).",
-    hint: "take my dog for a walk / heading to work"
+    category: "Moral Lesson",
+    keyGrammar: "Passive voice 'are achieved' expresses an enduring philosophical truth.",
+    hint: "with patience and dedication / difficult goals / achieved"
   },
   {
     id: 20,
-    hindi: "आपको सुबह उठते ही सोशल मीडिया देखने से बचना चाहिए।",
-    english: "You should avoid checking social media as soon as you wake up.",
+    hindi: "धीमी और निरंतर गति ही सफलता दिलाती है।",
+    english: "Slow and steady wins the race.",
     alternatives: [
-      "You ought to avoid looking at social media immediately after waking up.",
-      "Avoid checking social media right after waking up."
+      "Consistency and patience bring lasting success.",
+      "Steady effort always triumphs over erratic speed.",
+      "A steady and calm pace leads to real victory."
     ],
-    category: "Digital Discipline",
-    keyGrammar: "'Avoid' requires a gerund: 'avoid checking'. 'As soon as' introduces temporal clause.",
-    hint: "avoid checking / as soon as you wake up"
+    category: "Proverb",
+    keyGrammar: "Compound subject 'Slow and steady' treated as a singular axiom taking 'wins'.",
+    hint: "slow and steady / wins the race"
   },
   {
     id: 21,
-    hindi: "धूप में कुछ मिनट बिताना हमारी जैविक घड़ी को दुरुस्त रखता है।",
-    english: "Spending a few minutes in sunlight regulates our biological clock.",
+    hindi: "अति-आत्मविश्वास हमेशा असफलता की ओर ले जाता है।",
+    english: "Overconfidence always leads to failure.",
     alternatives: [
-      "Spending a few minutes in the sun sets our circadian rhythm.",
-      "A few minutes in the sunlight helps regulate our biological clock."
+      "Excessive confidence inevitably brings defeat.",
+      "Being overconfident always results in loss.",
+      "Pride and overconfidence lead straight to failure."
     ],
-    category: "Health & Biology",
-    keyGrammar: "Gerund phrase 'Spending a few minutes' functions as the subject.",
-    hint: "spending a few minutes / biological clock"
+    category: "Wisdom",
+    keyGrammar: "Subject-verb agreement: uncountable noun 'Overconfidence' takes singular 'leads to'.",
+    hint: "overconfidence / always leads to / failure"
   },
   {
     id: 22,
-    hindi: "मेरी माँ हमेशा सुबह जल्दी उठकर ताज़ा खाना बनाती हैं।",
-    english: "My mother always wakes up early in the morning and cooks fresh food.",
+    hindi: "कछुए ने कभी अपनी कमजोरियों को रुकावट नहीं बनने दिया।",
+    english: "The tortoise never allowed his weaknesses to become an obstacle.",
     alternatives: [
-      "My mother always gets up early and prepares fresh meals.",
-      "My mom always wakes up early in the morning to prepare fresh food."
+      "The tortoise never let his limitations stop him.",
+      "The tortoise never permitted his slow speed to hinder his journey.",
+      "He never allowed his physical drawbacks to hold him back."
     ],
-    category: "Family Routines",
-    keyGrammar: "Compound predicate: 'wakes up ... and cooks'.",
-    hint: "wakes up early / cooks fresh food"
+    category: "Mindset",
+    keyGrammar: "'Allow + object + to-infinitive' ('allowed his weaknesses to become').",
+    hint: "never allowed / weaknesses / become an obstacle"
   },
   {
     id: 23,
-    hindi: "मैं संगीत सुनते हुए अपने कमरे को व्यवस्थित करता हूँ।",
-    english: "I tidy up my room while listening to music.",
+    hindi: "उसने हर कदम पूरे ध्यान और विश्वास के साथ उठाया।",
+    english: "He took every step with complete focus and faith.",
     alternatives: [
-      "I clean my room while listening to music.",
-      "While listening to music, I organize my room."
+      "He placed each step with total focus and confidence.",
+      "With full attention and trust, he took every step forward.",
+      "He moved every step with total mindfulness and belief."
     ],
-    category: "Organization",
-    keyGrammar: "Phrasal verb: 'tidy up' means clean and put things in order.",
-    hint: "tidy up my room / while listening to music"
+    category: "Mindset",
+    keyGrammar: "Collocation: 'take steps' with prepositional phrase of manner 'with focus and faith'.",
+    hint: "took every step / complete focus / faith"
   },
   {
     id: 24,
-    hindi: "अगर मैं अपनी सुबह की दिनचर्या छोड़ देता हूँ, तो मैं आलस महसूस करता हूँ।",
-    english: "If I skip my morning routine, I feel sluggish.",
+    hindi: "जंगल में किसी ने नहीं सोचा था कि कछुआ जीत सकता है।",
+    english: "No one in the forest had thought that the tortoise could win.",
     alternatives: [
-      "If I miss my morning routine, I feel lazy.",
-      "Whenever I skip my morning routine, I feel lethargic."
+      "Nobody in the woods imagined that the tortoise would win.",
+      "Not a single animal believed the tortoise was capable of winning.",
+      "No creature had anticipated a tortoise victory."
     ],
-    category: "Conditionals",
-    keyGrammar: "Zero conditional for habitual truths: 'If + present simple, present simple'.",
-    hint: "skip my morning routine / feel sluggish"
+    category: "Reaction",
+    keyGrammar: "Negative indefinite pronoun 'No one' followed by Past Perfect 'had thought'.",
+    hint: "no one in the forest / had thought / could win"
   },
   {
     id: 25,
-    hindi: "वह काम पर जाने के लिए सुबह 8:30 बजे बस पकड़ती है।",
-    english: "She catches the bus at 8:30 AM to commute to work.",
+    hindi: "सच्ची ताकत शोर मचाने में नहीं, शांत रहने में होती है।",
+    english: "True strength lies not in making noise, but in staying calm.",
     alternatives: [
-      "She takes the bus at 8:30 in the morning to go to work.",
-      "She boards the bus at 8:30 am for work."
+      "Real power is not about shouting, but maintaining quiet resilience.",
+      "True power lies in quiet composure, not loud boasting.",
+      "Genuine strength resides in calmness rather than noise."
     ],
-    category: "Commuting",
-    keyGrammar: "Collocation: 'catch the bus'; 'commute to work'.",
-    hint: "catches the bus / commute to work"
+    category: "Philosophical",
+    keyGrammar: "Correlative structure: 'not in [gerund], but in [gerund]'.",
+    hint: "true strength lies / not in making noise / in staying calm"
   },
   {
     id: 26,
-    hindi: "संगति ही किसी भी नई आदत को बनाए रखने की असली कुंजी है।",
-    english: "Consistency is the real key to maintaining any new habit.",
+    hindi: "खरगोश ने कछुए के पास जाकर हाथ मिलाया।",
+    english: "The hare walked up to the tortoise and shook hands.",
     alternatives: [
-      "Consistency is the true key to sustaining any new habit.",
-      "Being consistent is the secret to keeping any new habit."
+      "The rabbit approached the tortoise and offered a handshake.",
+      "The hare went over to the tortoise and shook his hand respectfully.",
+      "Stepping forward, the hare congratulated the tortoise with a handshake."
     ],
-    category: "Habit Formation",
-    keyGrammar: "'The key to' is followed by a gerund ('maintaining').",
-    hint: "consistency / real key to maintaining"
+    category: "Sportsmanship",
+    keyGrammar: "Compound predicate: 'walked up to... and shook hands'.",
+    hint: "walked up to / shook hands"
   },
   {
     id: 27,
-    hindi: "मैं दिन के सबसे महत्वपूर्ण कार्य को सबसे पहले पूरा करता हूँ।",
-    english: "I tackle the most important task of the day first.",
+    hindi: "उसने अपनी पराजय को विनम्रता से स्वीकार किया।",
+    english: "He accepted his defeat with humility.",
     alternatives: [
-      "I complete the most crucial task of the day first.",
-      "First thing, I handle the most important task of the day."
+      "He gracefully acknowledged his loss.",
+      "He accepted the loss humbly and without anger.",
+      "With genuine humility, he acknowledged the defeat."
     ],
-    category: "Productivity",
-    keyGrammar: "Verb 'tackle' means to confront and deal with energetically.",
-    hint: "tackle the most important task"
+    category: "Sportsmanship",
+    keyGrammar: "Prepositional adverb of manner 'with humility' modifying 'accepted'.",
+    hint: "accepted his defeat / with humility"
   },
   {
     id: 28,
-    hindi: "क्या आपने कभी सुबह की सैर के फायदों को महसूस किया है?",
-    english: "Have you ever felt the benefits of a morning walk?",
+    hindi: "उस दिन के बाद दोनों अच्छे दोस्त बन गए।",
+    english: "After that day, both became good friends.",
     alternatives: [
-      "Have you ever experienced the benefits of morning walks?",
-      "Did you ever notice the advantages of a morning walk?"
+      "From that day forward, the two became close friends.",
+      "Following that race, both turned into great friends.",
+      "They formed a lasting friendship after that day."
     ],
-    category: "Experience",
-    keyGrammar: "Present perfect 'Have you ever felt' expresses life experience.",
-    hint: "have you ever felt / benefits of a morning walk"
+    category: "Epilogue",
+    keyGrammar: "Time phrase 'After that day' followed by linking verb 'became'.",
+    hint: "after that day / became good friends"
   },
   {
     id: 29,
-    hindi: "एक गिलास नींबू पानी पाचन क्रिया को शुरू करने में मदद करता है।",
-    english: "A glass of lemon water helps kick-start the digestive system.",
+    hindi: "यह कहानी हमें सिखाती है कि कभी किसी को कम मत समझो।",
+    english: "This story teaches us never to underestimate anyone.",
     alternatives: [
-      "A glass of warm lemon water helps stimulate digestion.",
-      "Drinking lemon water helps jump-start your digestion."
+      "This tale reminds us not to look down on others.",
+      "This fable teaches that we should never undervalue anyone.",
+      "The moral teaches us to never judge someone by appearances."
     ],
-    category: "Health & Nutrition",
-    keyGrammar: "Idiom: 'kick-start' means to give vigorous initial impetus.",
-    hint: "kick-start / digestive system"
+    category: "Takeaway",
+    keyGrammar: "Verb pattern: 'teaches + indirect object + infinitive' ('teaches us to...').",
+    hint: "teaches us / never to underestimate anyone"
   },
   {
     id: 30,
-    hindi: "मैं अपने बैग को एक रात पहले ही पैक कर लेता हूँ ताकि सुबह हड़बड़ी न हो।",
-    english: "I pack my bag the night before so there is no morning rush.",
+    hindi: "निरंतर प्रयास ही हर असंभव काम को संभव बनाता है।",
+    english: "Continuous effort alone makes every impossible task possible.",
     alternatives: [
-      "I pack my bag the previous night to avoid rushing in the morning.",
-      "To avoid the morning hurry, I pack my bag the night before."
+      "Persistent effort is what turns impossible tasks into reality.",
+      "Consistent work alone makes the impossible achievable.",
+      "Only regular perseverance renders impossible hurdles possible."
     ],
-    category: "Daily Planning",
-    keyGrammar: "'So' / 'so that' expresses consequence and purpose.",
-    hint: "the night before / no morning rush"
-  },
-  {
-    id: 31,
-    hindi: "सुबह का समय नई शब्दावली और अंग्रेजी सीखने के लिए सबसे अच्छा होता है।",
-    english: "The morning is the best time to learn new vocabulary and English.",
-    alternatives: [
-      "Morning is the ideal time for acquiring new English vocabulary.",
-      "The morning hours are best for learning new vocabulary in English."
-    ],
-    category: "Language Learning",
-    keyGrammar: "Superlative 'the best time' followed by infinitive 'to learn'.",
-    hint: "the best time / new vocabulary"
-  },
-  {
-    id: 32,
-    hindi: "वह काम शुरू करने से पहले पंद्रह मिनट प्रेरणादायक किताबें पढ़ती है।",
-    english: "She reads inspirational books for fifteen minutes before starting work.",
-    alternatives: [
-      "She spends fifteen minutes reading inspiring books before work.",
-      "Before starting work, she reads motivational books for 15 minutes."
-    ],
-    category: "Continuous Growth",
-    keyGrammar: "'Inspirational' is an adjective modifying 'books'.",
-    hint: "reads inspirational books / before starting work"
-  },
-  {
-    id: 33,
-    hindi: "मैं काम पर जाने के रास्ते में अक्सर अंग्रेजी पॉडकास्ट सुनता हूँ।",
-    english: "I often listen to English podcasts on my way to work.",
-    alternatives: [
-      "On my way to work, I frequently listen to English podcasts.",
-      "I usually tune in to English podcasts during my commute."
-    ],
-    category: "Passive Listening",
-    keyGrammar: "Prepositional phrase: 'on my way to work'. 'Listen' always takes 'to'.",
-    hint: "listen to English podcasts / on my way to work"
-  },
-  {
-    id: 34,
-    hindi: "समय प्रबंधन तनाव को कम करने और उत्पादकता बढ़ाने में मदद करता है।",
-    english: "Time management helps reduce stress and boost productivity.",
-    alternatives: [
-      "Managing your time helps lower stress and increase productivity.",
-      "Time management helps in reducing stress and enhancing productivity."
-    ],
-    category: "Productivity",
-    keyGrammar: "Parallel verbs: 'reduce stress and boost productivity'.",
-    hint: "reduce stress / boost productivity"
-  },
-  {
-    id: 35,
-    hindi: "मैं सुबह देर तक सोने के बजाय रात को जल्दी सोने को प्राथमिकता देता हूँ।",
-    english: "I prioritize sleeping early at night rather than sleeping in late.",
-    alternatives: [
-      "I prefer going to bed early rather than waking up late.",
-      "Instead of sleeping late, I prioritize an early bedtime."
-    ],
-    category: "Sleep Hygiene",
-    keyGrammar: "Phrasal verb: 'sleep in' means to sleep longer than usual in the morning.",
-    hint: "prioritize sleeping early / sleeping in late"
-  },
-  {
-    id: 36,
-    hindi: "अपने लक्ष्यों को रोज़ सुबह लिखना आपको केंद्रित रखता है।",
-    english: "Writing down your goals every morning keeps you focused.",
-    alternatives: [
-      "Writing your goals each morning keeps you centered.",
-      "Noting down your goals every morning maintains your focus."
-    ],
-    category: "Goal Setting",
-    keyGrammar: "Gerund 'Writing down' serves as singular subject; verb is 'keeps'.",
-    hint: "writing down your goals / keeps you focused"
-  },
-  {
-    id: 37,
-    hindi: "क्या आपके पास सुबह का कोई निश्चित समय सारिणी है?",
-    english: "Do you have a fixed morning schedule?",
-    alternatives: [
-      "Do you have a set timetable for your mornings?",
-      "Do you follow a structured morning routine?"
-    ],
-    category: "Habitual Structures",
-    keyGrammar: "'Schedule' / 'routine' collocated with adjective 'fixed' or 'structured'.",
-    hint: "fixed morning schedule"
-  },
-  {
-    id: 38,
-    hindi: "एक संतुलित दिनचर्या मानसिक स्पष्टता और शांति प्रदान करती है।",
-    english: "A balanced routine provides mental clarity and peace.",
-    alternatives: [
-      "A balanced daily routine gives mental clarity and tranquility.",
-      "Having a balanced routine brings clarity of mind and peace."
-    ],
-    category: "Mindfulness",
-    keyGrammar: "Abstract nouns: 'mental clarity' and 'peace'.",
-    hint: "balanced routine / mental clarity and peace"
-  },
-  {
-    id: 39,
-    hindi: "मैं अपने सहकर्मियों को मुस्कान के साथ 'सुप्रभात' कहता हूँ।",
-    english: "I greet my colleagues with a smile and say good morning.",
-    alternatives: [
-      "I cheerfully wish my coworkers good morning with a smile.",
-      "I greet my teammates with a smile every morning."
-    ],
-    category: "Workplace Etiquette",
-    keyGrammar: "Verb 'greet' takes direct object without preposition ('greet my colleagues').",
-    hint: "greet my colleagues / with a smile"
-  },
-  {
-    id: 40,
-    hindi: "छोटी-छोटी दैनिक आदतें समय के साथ बड़े परिणाम लाती हैं।",
-    english: "Small daily habits lead to remarkable results over time.",
-    alternatives: [
-      "Small everyday habits produce big results over time.",
-      "Tiny daily habits yield significant outcomes in the long run."
-    ],
-    category: "Atomic Habits",
-    keyGrammar: "Phrasal verb: 'lead to'; time phrase: 'over time'.",
-    hint: "small daily habits / remarkable results over time"
-  },
-  {
-    id: 41,
-    hindi: "मैं आज नए उत्साह और ऊर्जा के साथ अंग्रेजी सीखने के लिए तैयार हूँ।",
-    english: "I am ready to learn English today with renewed enthusiasm and energy.",
-    alternatives: [
-      "I am prepared to practice English today with fresh energy and enthusiasm.",
-      "Today I am ready to study English with enthusiasm and energy."
-    ],
-    category: "Empowerment & Milestone",
-    keyGrammar: "Collocation: 'renewed enthusiasm and energy'.",
-    hint: "ready to learn English / renewed enthusiasm"
+    category: "Core Philosophy",
+    keyGrammar: "Adverbial limiter 'alone' with causative structure 'makes [noun phrase] [adjective]'.",
+    hint: "continuous effort alone / makes impossible task possible"
   }
 ];

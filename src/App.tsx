@@ -846,6 +846,7 @@ export function App() {
               onDayPublished={async (dayNum) => {
                 await loadCurriculumDays();
                 setCurrentDay(dayNum);
+                await loadDayAndProgress(dayNum, user?.id || 'guest');
                 navigateTo('home');
               }}
             />

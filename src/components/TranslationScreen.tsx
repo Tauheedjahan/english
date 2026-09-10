@@ -233,7 +233,7 @@ export const TranslationScreen: React.FC<TranslationScreenProps> = ({
       )}
 
       {/* Main Content Area */}
-      <main className="flex-grow w-full max-w-[850px] mx-auto px-4 md:px-12 py-8 md:py-10 flex flex-col justify-between">
+      <main dir="ltr" className="flex-grow w-full max-w-[850px] mx-auto p-[20px] flex flex-col justify-between text-left">
         <div className="space-y-6">
           {/* Progress Bar & Header */}
           <div className="flex flex-col gap-2">
